@@ -105,7 +105,7 @@ class LandcoverTest extends AbstractLayerTest {
       "class", "wood",
       "_minpixelsize", 8d,
       "_numpointsattr", "_numpoints",
-      "_minzoom", 7,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeature(Map.of(
       "natural", "wood"
@@ -115,7 +115,7 @@ class LandcoverTest extends AbstractLayerTest {
       "subclass", "forest",
       "class", "wood",
       "_minpixelsize", 8d,
-      "_minzoom", 7,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeature(Map.of(
       "landuse", "forest"
@@ -125,7 +125,7 @@ class LandcoverTest extends AbstractLayerTest {
       "subclass", "dune",
       "class", "sand",
       "_minpixelsize", 4d,
-      "_minzoom", 7,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeature(Map.of(
       "natural", "dune"
@@ -202,8 +202,10 @@ class LandcoverTest extends AbstractLayerTest {
   private void assertMerges(List<Map<String, Object>> expected, List<VectorTile.Feature> in, int zoom)
     throws GeometryException {
     Assertions.assertEquals(expected,
-      profile.postProcessLayerFeatures("landcover", zoom, in).stream().map(
-        VectorTile.Feature::tags)
-        .toList());
+      (zoom == 14 ?
+        profile.postProcessLayerFeatures("landcover", zoom, in) : postProcessedUnwritten("landcover", zoom, in))
+          .stream().map(
+            VectorTile.Feature::tags)
+          .toList());
   }
 }

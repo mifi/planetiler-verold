@@ -37,10 +37,11 @@ class BuildingTest extends AbstractLayerTest {
       "hide_3d", "<null>",
       "_layer", "building",
       "_type", "polygon",
-      "_minzoom", 13,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 4d,
-      "_minpixelsize", 0.1d
+      // Imaginarium: nothing merges at z13 (building_merge_z13 is off), so no smaller minimum for it.
+      "_minpixelsize", 2d
     )), process(polygonFeature(Map.of(
       "building", "yes"
     ))));
@@ -275,7 +276,9 @@ class BuildingTest extends AbstractLayerTest {
   }
 
   @Test
-  void testMergePolygonsZ13() throws GeometryException {
+  void testBuildingsNotMerged() throws GeometryException {
+    // Imaginarium: each building its own feature at z14 (OpenMapTiles merges a tile's into multipolygons), and none at
+    // z13 at all.
     var poly1 = new VectorTile.Feature(
       Building.LAYER_NAME,
       1,
@@ -285,30 +288,19 @@ class BuildingTest extends AbstractLayerTest {
     );
     var poly2 = new VectorTile.Feature(
       Building.LAYER_NAME,
-      1,
+      2,
       VectorTile.encodeGeometry(rectangle(20, 10, 22, 20)),
       Map.of(),
       0
     );
 
     Assertions.assertEquals(
-      1, // merged into 1 multipolygon
-      profile.postProcessLayerFeatures(Building.LAYER_NAME, 14, List.of(poly1, poly2)).size()
-    );
-
-    Assertions.assertEquals(
-      2, // merged into 1 multipolygon
-      profile.postProcessLayerFeatures(Building.LAYER_NAME, 14, List.of(poly1, poly2)).get(0).geometry().decode()
-        .getNumGeometries()
+      List.of(poly1, poly2),
+      profile.postProcessLayerFeatures(Building.LAYER_NAME, 14, List.of(poly1, poly2))
     );
     Assertions.assertEquals(
-      1,
-      profile.postProcessLayerFeatures(Building.LAYER_NAME, 13, List.of(poly1, poly2)).size()
-    );
-    Assertions.assertEquals(
-      1,
-      profile.postProcessLayerFeatures(Building.LAYER_NAME, 13, List.of(poly1, poly2)).get(0).geometry().decode()
-        .getNumGeometries()
+      List.of(),
+      profile.postProcessLayerFeatures(Building.LAYER_NAME, 13, List.of(poly1, poly2))
     );
   }
 

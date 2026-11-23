@@ -192,7 +192,7 @@ public class Building implements
         .setAttrWithMinzoom(TEMP_PART, hideOutlinesWithParts && element.buildingpart() != null ? true : null, 14)
         .setSortKey(renderHeight);
       // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away).
-      Imaginarium.tagged(feature, element.source(), Imaginarium.BUILDING_TAGS);
+      Imaginarium.building(feature, element.source());
       if (mergeZ13Buildings) {
         feature
           .setMinPixelSize(0.1)

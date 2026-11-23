@@ -262,7 +262,7 @@ class BoundaryTest extends AbstractLayerTest {
       "maritime", 0,
       "admin_level", 10,
 
-      "_minzoom", 12,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 4d,
       "_minpixelsize", 0d
@@ -285,7 +285,7 @@ class BoundaryTest extends AbstractLayerTest {
       "maritime", 0,
       "admin_level", 3,
 
-      "_minzoom", 5,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 4d,
       "_minpixelsize", 0d
@@ -448,7 +448,7 @@ class BoundaryTest extends AbstractLayerTest {
     assertFeatures(3, List.of(Map.of(
       "_layer", "boundary",
       "_type", "line",
-      "_minzoom", 5,
+      "_minzoom", 14,
 
       "disputed", 1,
       "maritime", 0,
@@ -783,14 +783,14 @@ class BoundaryTest extends AbstractLayerTest {
     relation.setTag("admin_level", "2");
     relation.setTag("boundary", "administrative");
 
-    assertFeatures(14, List.of(Map.of("_minzoom", 0)),
+    assertFeatures(14, List.of(Map.of("_minzoom", 14)),
       processOsmOnly(lineFeatureWithRelation(profile.preprocessOsmRelation(relation), Map.of())));
 
-    assertFeatures(14, List.of(Map.of("_minzoom", 4)),
+    assertFeatures(14, List.of(Map.of("_minzoom", 14)),
       processOsmOnly(lineFeatureWithRelation(profile.preprocessOsmRelation(relation), Map.of("maritime", 1))));
 
     relation.setTag("admin_level", "4");
-    assertFeatures(14, List.of(Map.of("_minzoom", 1)),
+    assertFeatures(14, List.of(Map.of("_minzoom", 14)),
       processOsmOnly(lineFeatureWithRelation(profile.preprocessOsmRelation(relation), Map.of())));
   }
 
@@ -804,7 +804,7 @@ class BoundaryTest extends AbstractLayerTest {
       "name:latin", "Seminole Nation",
 
       "_type", "polygon",
-      "_minzoom", 4
+      "_minzoom", 14
     ), Map.of(
       "_layer", "park",
       "_type", "polygon"

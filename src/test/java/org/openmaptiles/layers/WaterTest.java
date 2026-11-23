@@ -383,7 +383,7 @@ class WaterTest extends AbstractLayerTest {
       "intermittent", "<null>",
       "_layer", "water",
       "_type", "polygon",
-      "_minzoom", 6,
+      "_minzoom", 12,
       "_maxzoom", 14
     )), process(SimpleFeature.create(
       rectangle(0, 10),
@@ -402,7 +402,7 @@ class WaterTest extends AbstractLayerTest {
       "id", id,
       "_layer", "water",
       "_type", "polygon",
-      "_minzoom", 6,
+      "_minzoom", 12,
       "_maxzoom", 14
     )), process(SimpleFeature.create(
       GeoUtils.worldToLatLonCoords(rectangle(0, Math.sqrt(1))),
@@ -422,7 +422,7 @@ class WaterTest extends AbstractLayerTest {
       "class", "lake",
       "_layer", "water",
       "_type", "polygon",
-      "_minzoom", 6,
+      "_minzoom", 12,
       "_maxzoom", 14
     )), process(polygonFeature(Map.of(
       "natural", "water",
@@ -435,7 +435,7 @@ class WaterTest extends AbstractLayerTest {
 
         "_layer", "water",
         "_type", "polygon",
-        "_minzoom", 6,
+        "_minzoom", 12,
         "_maxzoom", 14
       )), process(polygonFeature(Map.of(
         "leisure", "swimming_pool"
@@ -457,7 +457,7 @@ class WaterTest extends AbstractLayerTest {
 
         "_layer", "water",
         "_type", "polygon",
-        "_minzoom", 6,
+        "_minzoom", 12,
         "_maxzoom", 14),
       Map.of(
         "class", "harbor",
@@ -478,7 +478,7 @@ class WaterTest extends AbstractLayerTest {
 
       "_layer", "water",
       "_type", "polygon",
-      "_minzoom", 6,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_minpixelsize", 2d
     )), process(polygonFeature(Map.of(
@@ -527,7 +527,8 @@ class WaterTest extends AbstractLayerTest {
 
   @Test
   void testOceanZoomLevels() {
-    assertCoversZoomRange(0, 14, "water",
+    // Imaginarium: Natural Earth's to z5, and the water polygons' from the far zoom on, none between.
+    assertCoversZooms(zoom -> zoom <= 5 || zoom >= 12, "water",
       process(SimpleFeature.create(
         rectangle(0, 10),
         Map.of(),
@@ -561,7 +562,8 @@ class WaterTest extends AbstractLayerTest {
 
   @Test
   void testLakeZoomLevels() {
-    assertCoversZoomRange(6, 14, "water",
+    // Imaginarium: OpenStreetMap's lakes from the far zoom on (OpenMapTiles' from z6).
+    assertCoversZoomRange(12, 14, "water",
       process(SimpleFeature.create(
         rectangle(0, 10),
         Map.of(

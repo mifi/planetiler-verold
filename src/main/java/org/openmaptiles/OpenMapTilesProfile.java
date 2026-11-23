@@ -213,6 +213,15 @@ public class OpenMapTilesProfile extends ForwardingProfile {
     return kept.isEmpty() ? kept : super.postProcessLayerFeatures(layer, zoom, kept);
   }
 
+  /**
+   * Imaginarium: the layers' own post-processing, OpenMapTiles', of everything at any zoom, whether written or not: for
+   * the tests of what it does at the zooms our tiles have none of.
+   */
+  public List<VectorTile.Feature> postProcessLayerFeaturesUnkept(String layer, int zoom, List<VectorTile.Feature> items)
+    throws GeometryException {
+    return super.postProcessLayerFeatures(layer, zoom, items);
+  }
+
   @Override
   public Map<String, List<String>> dependsOnLayer() {
     return Map.of("transportation_name", List.of("transportation"));

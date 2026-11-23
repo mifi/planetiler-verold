@@ -23,7 +23,7 @@ class AerodromeLabelTest extends AbstractLayerTest {
 
       "_layer", "aerodrome_label",
       "_type", "point",
-      "_minzoom", 8,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 64d
     )), process(pointFeature(Map.of(
@@ -72,7 +72,7 @@ class AerodromeLabelTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "class", "international",
       "_layer", "aerodrome_label",
-      "_minzoom", 10 // no IATA
+      "_minzoom", 14 // no IATA
     )), process(pointFeature(Map.of(
       "aeroway", "aerodrome",
       "aerodrome_type", "international"
@@ -84,7 +84,7 @@ class AerodromeLabelTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "class", "public",
       "_layer", "aerodrome_label",
-      "_minzoom", 10
+      "_minzoom", 14
     )), process(pointFeature(Map.of(
       "aeroway", "aerodrome",
       "aerodrome_type", "public airport"
@@ -103,7 +103,7 @@ class AerodromeLabelTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "class", "military",
       "_layer", "aerodrome_label",
-      "_minzoom", 10
+      "_minzoom", 14
     )), process(pointFeature(Map.of(
       "aeroway", "aerodrome",
       "aerodrome_type", "military airport"
@@ -122,7 +122,7 @@ class AerodromeLabelTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "class", "private",
       "_layer", "aerodrome_label",
-      "_minzoom", 10
+      "_minzoom", 14
     )), process(pointFeature(Map.of(
       "aeroway", "aerodrome",
       "aerodrome_type", "private"
@@ -141,7 +141,7 @@ class AerodromeLabelTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "class", "other",
       "_layer", "aerodrome_label",
-      "_minzoom", 10
+      "_minzoom", 14
     )), process(pointFeature(Map.of(
       "aeroway", "aerodrome"
     ))));

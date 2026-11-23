@@ -87,8 +87,8 @@ public class Aeroway implements
   }
 
   /**
-   * Imaginarium: a helipad mapped as a point (OpenMapTiles has only those mapped as areas), from the far zoom on, as the
-   * helipad areas are read.
+   * Imaginarium: a helipad mapped as a point (OpenMapTiles has only those mapped as areas), from the far zoom on, as
+   * the helipad areas are read.
    */
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {

@@ -66,7 +66,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 6,
 
       "_type", "point",
-      "_minzoom", 5
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newPoint(0.5, 0.5),
       Map.of(
@@ -92,7 +92,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 1,
 
       "_type", "point",
-      "_minzoom", 0
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newPoint(0.1, 0.1),
       Map.of(
@@ -177,7 +177,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 1,
 
       "_type", "point",
-      "_minzoom", 2
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newPoint(0.1, 0.1),
       Map.of(
@@ -216,7 +216,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 3,
 
       "_type", "point",
-      "_minzoom", 2
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newPoint(0.1, 0.1),
       Map.of(
@@ -241,7 +241,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 7,
 
       "_type", "point",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(pointFeature(
       Map.of(
         "place", "island",
@@ -261,7 +261,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 1,
 
       "_type", "point",
-      "_minzoom", 8
+      "_minzoom", 14
     )), process(polygonFeatureWithArea(1,
       Map.of(
         "place", "island",
@@ -278,7 +278,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 4,
 
       "_type", "point",
-      "_minzoom", 9
+      "_minzoom", 14
     )), process(polygonFeatureWithArea(rank4area,
       Map.of(
         "place", "island",
@@ -306,7 +306,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 1,
 
       "_type", "point",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(polygonFeatureWithArea(1,
       Map.of(
         "type", "boundary",
@@ -332,7 +332,7 @@ class PlaceTest extends AbstractLayerTest {
       "rank", 2,
 
       "_type", "point",
-      "_minzoom", 7
+      "_minzoom", 14
     )), process(polygonFeatureWithArea(rank2area,
       Map.of(
         "type", "boundary",
@@ -399,7 +399,7 @@ class PlaceTest extends AbstractLayerTest {
       "_labelgrid_size", 128d,
 
       "_type", "point",
-      "_minzoom", 2
+      "_minzoom", 14
     )), process(pointFeature(
       Map.of(
         "place", "city",
@@ -431,7 +431,7 @@ class PlaceTest extends AbstractLayerTest {
       "capital", 4,
 
       "_type", "point",
-      "_minzoom", 3
+      "_minzoom", 14
     )), process(pointFeature(
       Map.of(
         "place", "city",
@@ -506,7 +506,7 @@ class PlaceTest extends AbstractLayerTest {
       "capital", 6,
 
       "_type", "point",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(pointFeature(
       Map.of(
         "place", "city",
@@ -567,7 +567,7 @@ class PlaceTest extends AbstractLayerTest {
       "_layer", "place",
       "class", "city",
       "rank", "<null>",
-      "_minzoom", 7,
+      "_minzoom", 14,
       "_labelgrid_limit", 4,
       "_labelgrid_size", 128d
     )), process(pointFeature(
@@ -604,13 +604,13 @@ class PlaceTest extends AbstractLayerTest {
   @Test
   void testCitySetRankFromGridrank() throws GeometryException {
     var layerName = Place.LAYER_NAME;
-    Assertions.assertEquals(List.of(), profile.postProcessLayerFeatures(layerName, 13, List.of()));
+    Assertions.assertEquals(List.of(), postProcessedUnwritten(layerName, 13, List.of()));
 
     Assertions.assertEquals(List.of(pointFeature(
       layerName,
       Map.of("rank", 11),
       1
-    )), profile.postProcessLayerFeatures(layerName, 13, List.of(pointFeature(
+    )), postProcessedUnwritten(layerName, 13, List.of(pointFeature(
       layerName,
       Map.of(),
       1
@@ -630,7 +630,7 @@ class PlaceTest extends AbstractLayerTest {
         Map.of("rank", 11, "name", "c"),
         2
       )
-    ), profile.postProcessLayerFeatures(layerName, 13, List.of(
+    ), postProcessedUnwritten(layerName, 13, List.of(
       pointFeature(
         layerName,
         Map.of("name", "a"),

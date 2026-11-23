@@ -77,7 +77,7 @@ class WaterwayTest extends AbstractLayerTest {
 
     assertEquals(
       isLongEnough ? List.of(connected) : List.of(),
-      profile.postProcessLayerFeatures(Waterway.LAYER_NAME, 8, new ArrayList<>(List.of(line1, line2)))
+      postProcessedUnwritten(Waterway.LAYER_NAME, 8, new ArrayList<>(List.of(line1, line2)))
     );
   }
 
@@ -96,7 +96,7 @@ class WaterwayTest extends AbstractLayerTest {
 
       "_layer", "waterway",
       "_type", "line",
-      "_minzoom", 9,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 4d
     )), charlesRiver);
@@ -143,15 +143,15 @@ class WaterwayTest extends AbstractLayerTest {
 
     assertEquals(
       List.of(),
-      profile.postProcessLayerFeatures(Waterway.LAYER_NAME, 11, List.of())
+      postProcessedUnwritten(Waterway.LAYER_NAME, 11, List.of())
     );
     assertEquals(
       List.of(line1, line2),
-      profile.postProcessLayerFeatures(Waterway.LAYER_NAME, 12, List.of(line1, line2))
+      postProcessedUnwritten(Waterway.LAYER_NAME, 12, List.of(line1, line2))
     );
     assertEquals(
       List.of(connected),
-      profile.postProcessLayerFeatures(Waterway.LAYER_NAME, 11, List.of(line1, line2))
+      postProcessedUnwritten(Waterway.LAYER_NAME, 11, List.of(line1, line2))
     );
   }
 
@@ -164,7 +164,7 @@ class WaterwayTest extends AbstractLayerTest {
 
       "_layer", "waterway",
       "_type", "line",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "waterway", "river",
       "bridge", "1"
@@ -174,7 +174,7 @@ class WaterwayTest extends AbstractLayerTest {
       "class", "canal",
       "_layer", "waterway",
       "_type", "line",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "waterway", "canal",
       "name", "name"
@@ -184,7 +184,7 @@ class WaterwayTest extends AbstractLayerTest {
       "class", "stream",
       "_layer", "waterway",
       "_type", "line",
-      "_minzoom", 13
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "waterway", "stream",
       "name", "name"

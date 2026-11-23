@@ -19,7 +19,7 @@ class ParkTest extends AbstractLayerTest {
       "class", "national_park",
       "name", "Grand Canyon National Park",
       "_minpixelsize", 2d,
-      "_minzoom", 4,
+      "_minzoom", 14,
       "_maxzoom", 14
     ), Map.of(
       "_layer", "park",
@@ -29,7 +29,7 @@ class ParkTest extends AbstractLayerTest {
       "name_int", "Grand Canyon National Park",
       "name:latin", "Grand Canyon National Park",
       //      "name:es", "es name", // don't include all translations
-      "_minzoom", 5,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeature(Map.of(
       "boundary", "national_park",
@@ -58,7 +58,7 @@ class ParkTest extends AbstractLayerTest {
       "class", "protected_area",
       "name", "Small park",
       "_minpixelsize", 2d,
-      "_minzoom", 4,
+      "_minzoom", 14,
       "_maxzoom", 14
     ), Map.of(
       "_layer", "park",
@@ -66,7 +66,7 @@ class ParkTest extends AbstractLayerTest {
       "class", "protected_area",
       "name", "Small park",
       "name_int", "Small park",
-      "_minzoom", 11,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeatureWithArea(z11area, Map.of(
       "boundary", "protected_area",
@@ -79,7 +79,7 @@ class ParkTest extends AbstractLayerTest {
     ), Map.of(
       "_layer", "park",
       "_type", "point",
-      "_minzoom", 5,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeatureWithArea(1, Map.of(
       "boundary", "protected_area",

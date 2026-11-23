@@ -45,7 +45,7 @@ class PoiTest extends AbstractLayerTest {
       "class", "railway",
       "subclass", "halt",
       "rank", "<null>",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(feature(area, Map.of(
       "railway", "station",
       "funicular", "yes",
@@ -61,7 +61,7 @@ class PoiTest extends AbstractLayerTest {
       "class", "railway",
       "subclass", "subway",
       "rank", "<null>",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(feature(area, Map.of(
       "railway", "station",
       "station", "subway",
@@ -289,7 +289,7 @@ class PoiTest extends AbstractLayerTest {
       "class", "ferry_terminal",
       "subclass", "ferry_terminal",
       "name", "Water Taxi",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(feature(area, Map.of(
       "amenity", "ferry_terminal",
       "information", "infotype",
@@ -303,7 +303,7 @@ class PoiTest extends AbstractLayerTest {
   @Test
   void testGridRank() throws GeometryException {
     var layerName = Poi.LAYER_NAME;
-    Assertions.assertEquals(List.of(), profile.postProcessLayerFeatures(layerName, 13, List.of()));
+    Assertions.assertEquals(List.of(), postProcessedUnwritten(layerName, 13, List.of()));
 
     Assertions.assertEquals(List.of(pointFeature(
       layerName,

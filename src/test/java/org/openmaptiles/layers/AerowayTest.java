@@ -37,7 +37,7 @@ class AerowayTest extends AbstractLayerTest {
 
       "_layer", "aeroway",
       "_type", "line",
-      "_minzoom", 10,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_buffer", 4d
     )), process(lineFeature(Map.of(
@@ -57,7 +57,7 @@ class AerowayTest extends AbstractLayerTest {
 
       "_layer", "aeroway",
       "_type", "polygon",
-      "_minzoom", 10,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_buffer", 4d
     )), process(polygonFeature(Map.of(

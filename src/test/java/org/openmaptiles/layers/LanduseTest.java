@@ -50,7 +50,7 @@ class LanduseTest extends AbstractLayerTest {
         "_layer", "landuse",
         "class", "railway",
         "_minpixelsize", 4d,
-        "_minzoom", 9,
+        "_minzoom", 14,
         "_maxzoom", 14
       )), process(polygonFeature(Map.of(
         "landuse", "railway",
@@ -60,7 +60,7 @@ class LanduseTest extends AbstractLayerTest {
       "_layer", "landuse",
       "class", "school",
       "_minpixelsize", 4d,
-      "_minzoom", 9,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeature(Map.of(
       "amenity", "school"
@@ -84,7 +84,7 @@ class LanduseTest extends AbstractLayerTest {
     assertFeatures(6, List.of(Map.of(
       "_layer", "landuse",
       "class", "suburb",
-      "_minzoom", 6,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_minpixelsize", 1d
     )), process(polygonFeature(Map.of(
@@ -93,7 +93,7 @@ class LanduseTest extends AbstractLayerTest {
     assertFeatures(7, List.of(Map.of(
       "_layer", "landuse",
       "class", "residential",
-      "_minzoom", 6,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_minpixelsize", 0.1d
     )), process(polygonFeature(Map.of(
@@ -127,7 +127,7 @@ class LanduseTest extends AbstractLayerTest {
 
     Assertions.assertEquals(
       List.of(1, 2),
-      profile.postProcessLayerFeatures(Landuse.LAYER_NAME, 13, List.of(poly1, poly2, poly3)).stream()
+      postProcessedUnwritten(Landuse.LAYER_NAME, 13, List.of(poly1, poly2, poly3)).stream()
         .map(d -> {
           try {
             return d.geometry().decode().getNumGeometries();
@@ -138,7 +138,7 @@ class LanduseTest extends AbstractLayerTest {
     );
     Assertions.assertEquals(
       List.of(1, 1),
-      profile.postProcessLayerFeatures(Landuse.LAYER_NAME, 12, List.of(poly1, poly2, poly3)).stream()
+      postProcessedUnwritten(Landuse.LAYER_NAME, 12, List.of(poly1, poly2, poly3)).stream()
         .map(d -> {
           try {
             return d.geometry().decode().getNumGeometries();

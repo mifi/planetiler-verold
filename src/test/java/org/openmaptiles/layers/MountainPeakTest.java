@@ -38,7 +38,7 @@ class MountainPeakTest extends AbstractLayerTest {
 
       "_layer", "mountain_peak",
       "_type", "point",
-      "_minzoom", 7,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 100d
     )), peak);
@@ -153,7 +153,7 @@ class MountainPeakTest extends AbstractLayerTest {
 
       "_layer", "mountain_peak",
       "_type", "line",
-      "_minzoom", 13,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_buffer", 100d
     )), process(lineFeature(Map.of(
@@ -237,13 +237,13 @@ class MountainPeakTest extends AbstractLayerTest {
 
   @Test
   void testMountainPeakPostProcessing() throws GeometryException {
-    Assertions.assertEquals(List.of(), profile.postProcessLayerFeatures(MountainPeak.LAYER_NAME, 13, List.of()));
+    Assertions.assertEquals(List.of(), postProcessedUnwritten(MountainPeak.LAYER_NAME, 13, List.of()));
 
     Assertions.assertEquals(List.of(pointFeature(
       MountainPeak.LAYER_NAME,
       Map.of("rank", 1),
       1
-    )), profile.postProcessLayerFeatures(MountainPeak.LAYER_NAME, 13, List.of(pointFeature(
+    )), postProcessedUnwritten(MountainPeak.LAYER_NAME, 13, List.of(pointFeature(
       MountainPeak.LAYER_NAME,
       Map.of(),
       1
@@ -263,7 +263,7 @@ class MountainPeakTest extends AbstractLayerTest {
         Map.of("rank", 1, "name", "c"),
         2
       )
-    ), profile.postProcessLayerFeatures(MountainPeak.LAYER_NAME, 13, List.of(
+    ), postProcessedUnwritten(MountainPeak.LAYER_NAME, 13, List.of(
       pointFeature(
         MountainPeak.LAYER_NAME,
         Map.of("name", "a"),
@@ -301,7 +301,7 @@ class MountainPeakTest extends AbstractLayerTest {
         2
       ),
       null
-    ), profile.postProcessLayerFeatures(MountainPeak.LAYER_NAME, 13, Lists.newArrayList(
+    ), postProcessedUnwritten(MountainPeak.LAYER_NAME, 13, Lists.newArrayList(
       new VectorTile.Feature(
         MountainPeak.LAYER_NAME,
         1,

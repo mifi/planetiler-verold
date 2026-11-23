@@ -27,7 +27,7 @@ class WaterNameTest extends AbstractLayerTest {
 
       "_layer", "water_name",
       "_type", "point",
-      "_minzoom", 3,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(polygonFeatureWithArea(1, Map.of(
       "name", "waterway",
@@ -58,7 +58,7 @@ class WaterNameTest extends AbstractLayerTest {
       "_layer", "water_name",
       "_type", "line",
       "_geom", new TestUtils.NormGeometry(GeoUtils.latLonToWorldCoords(newLineString(0, 0, 1, 1))),
-      "_minzoom", 3,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_minpixelsize", "waterway".length() * 6d
     )), process(SimpleFeature.create(
@@ -108,7 +108,7 @@ class WaterNameTest extends AbstractLayerTest {
           newLineString(0, 0, 1, 1),
           newLineString(2, 2, 3, 3)
         }))),
-      "_minzoom", 3,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_minpixelsize", "waterway".length() * 6d
     )), process(SimpleFeature.create(
@@ -143,7 +143,7 @@ class WaterNameTest extends AbstractLayerTest {
       "_layer", "water_name",
       "_type", "line",
       "_geom", new TestUtils.NormGeometry(GeoUtils.latLonToWorldCoords(newLineString(0, 0, 1, 1))),
-      "_minzoom", 9,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_minpixelsize", "bay".length() * 6d
     ), Map.of(
@@ -185,7 +185,7 @@ class WaterNameTest extends AbstractLayerTest {
 
       "_layer", "water_name",
       "_type", "line",
-      "_minzoom", 9,
+      "_minzoom", 14,
       "_maxzoom", 14
     ), Map.of(
       "name", "bay",
@@ -227,7 +227,7 @@ class WaterNameTest extends AbstractLayerTest {
       "name:es", "Mar Negro",
       "_layer", "water_name",
       "_type", "point",
-      "_minzoom", 1,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(pointFeature(Map.of(
       "rank", 9,
@@ -240,7 +240,7 @@ class WaterNameTest extends AbstractLayerTest {
     assertFeatures(10, List.of(Map.of(
       "_layer", "water_name",
       "_type", "point",
-      "_minzoom", 0,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(pointFeature(Map.of(
       "rank", 9,
@@ -252,7 +252,7 @@ class WaterNameTest extends AbstractLayerTest {
     assertFeatures(10, List.of(Map.of(
       "_layer", "water_name",
       "_type", "point",
-      "_minzoom", 9,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(pointFeature(Map.of(
       "rank", 9,
@@ -264,7 +264,7 @@ class WaterNameTest extends AbstractLayerTest {
     assertFeatures(10, List.of(Map.of(
       "_layer", "water_name",
       "_type", "point",
-      "_minzoom", 8,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), process(pointFeature(Map.of(
       "name", "Atlantic",

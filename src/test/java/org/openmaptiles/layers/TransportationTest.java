@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openmaptiles.OpenMapTilesProfile;
+import org.openmaptiles.util.Imaginarium;
 
 class TransportationTest extends AbstractLayerTest {
 
@@ -60,7 +61,7 @@ class TransportationTest extends AbstractLayerTest {
       "name_int", "Lagoon Path",
       "name:latin", "Lagoon Path",
       "_minpixelsize", 0d,
-      "_minzoom", 13,
+      "_minzoom", 14,
       "_maxzoom", 14
     )), result);
     assertFeatures(13, List.of(Map.of(
@@ -129,7 +130,7 @@ class TransportationTest extends AbstractLayerTest {
       "name_int", "Appalachian Trail",
       "name:latin", "Appalachian Trail",
       "_minpixelsize", 0d,
-      "_minzoom", 12
+      "_minzoom", 14
     )), features);
   }
 
@@ -340,7 +341,7 @@ class TransportationTest extends AbstractLayerTest {
       "foot", "no",
       "horse", "no",
       "brunnel", "bridge",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.ofEntries(
       entry("_layer", "transportation_name"),
       entry("class", "motorway"),
@@ -352,7 +353,7 @@ class TransportationTest extends AbstractLayerTest {
       entry("route_1_network", "US:I"),
       entry("route_1_ref", "90"),
       entry("brunnel", "<null>"),
-      entry("_minzoom", 6)
+      entry("_minzoom", 14)
     )), features);
 
     assertFeatures(8, List.of(Map.of(
@@ -365,7 +366,7 @@ class TransportationTest extends AbstractLayerTest {
       "foot", "<null>",
       "horse", "<null>",
       "brunnel", "bridge",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.ofEntries(
       entry("_layer", "transportation_name"),
       entry("class", "motorway"),
@@ -377,7 +378,7 @@ class TransportationTest extends AbstractLayerTest {
       entry("route_1_network", "US:I"),
       entry("route_1_ref", "90"),
       entry("brunnel", "<null>"),
-      entry("_minzoom", 6)
+      entry("_minzoom", 14)
     )), features);
   }
 
@@ -413,7 +414,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "us-state",
-      "_minzoom", 6
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -424,7 +425,7 @@ class TransportationTest extends AbstractLayerTest {
       "route_1_ref", "104",
       "route_2_network", "<null>",
       "route_2_ref", "<null>",
-      "_minzoom", 8
+      "_minzoom", 14
     )), features);
   }
 
@@ -458,7 +459,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(mapOf(
       "_layer", "transportation",
       "class", "motorway",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
@@ -469,7 +470,7 @@ class TransportationTest extends AbstractLayerTest {
       "route_1_ref", "95",
       "route_2_network", "US:NJ:NJTP",
       "route_2_ref", "NJTP",
-      "_minzoom", 6
+      "_minzoom", 14
     )), rendered);
   }
 
@@ -506,7 +507,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(mapOf(
       "_layer", "transportation",
       "class", "motorway",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
@@ -514,7 +515,7 @@ class TransportationTest extends AbstractLayerTest {
       "route_1_colour", "#000000",
       "route_2_network", "US:NJ:NJTP",
       "route_2_colour", "#FFFFFF",
-      "_minzoom", 6
+      "_minzoom", 14
     )), rendered);
   }
 
@@ -543,7 +544,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(mapOf(
       "_layer", "transportation",
       "class", "motorway",
-      "_minzoom", 4
+      "_minzoom", 12
     ), mapOf(
       "_layer", "transportation_name",
       "route_1_network", "US:I",
@@ -694,7 +695,7 @@ class TransportationTest extends AbstractLayerTest {
       "ref_length", 2,
       "layer", 1L,
       "_type", "point",
-      "_minzoom", 10
+      "_minzoom", 14
     )), features);
   }
 
@@ -716,7 +717,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "motorway",
       "network", "us-interstate",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
@@ -726,7 +727,7 @@ class TransportationTest extends AbstractLayerTest {
       "brunnel", "<null>",
       "route_1_network", "US:I",
       "route_1_ref", "90",
-      "_minzoom", 6
+      "_minzoom", 14
     )), features);
   }
 
@@ -736,12 +737,12 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "motorway_construction",
       "oneway", 1,
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "name", "D4 II/118 – Milín",
       "class", "motorway_construction",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "highway", "construction",
       "construction", "motorway",
@@ -758,13 +759,13 @@ class TransportationTest extends AbstractLayerTest {
       "brunnel", "bridge",
       "layer", 1L,
       "oneway", 1,
-      "_minzoom", 7
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "name", "North Washington Street",
       "class", "primary_construction",
       "brunnel", "<null>",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "highway", "construction",
       "construction", "primary",
@@ -826,7 +827,7 @@ class TransportationTest extends AbstractLayerTest {
       "class", "raceway",
       "name", "Climbing Turn",
       "ref", "5",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "highway", "raceway",
       "oneway", "yes",
@@ -863,7 +864,7 @@ class TransportationTest extends AbstractLayerTest {
       "class", "path",
       "subclass", "path",
       "name", "Path name",
-      "_minzoom", 13
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "highway", "path",
       "mtb:scale", "4",
@@ -885,7 +886,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation_name",
       "class", "track",
       "name", "name",
-      "_minzoom", 13
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "highway", "track",
       "surface", "dirt",
@@ -915,12 +916,12 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "busway",
       "brunnel", "tunnel",
-      "_minzoom", 11
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "busway",
       "name", "Silver Line",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "access", "no",
       "bus", "yes",
@@ -938,12 +939,12 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "bus_guideway",
       "brunnel", "tunnel",
-      "_minzoom", 11
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "bus_guideway",
       "name", "Silver Line",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(Map.of(
       "access", "no",
       "bus", "yes",
@@ -982,7 +983,7 @@ class TransportationTest extends AbstractLayerTest {
       "oneway", "<null>",
       "ramp", "<null>",
       "network", "us-highway",
-      "_minzoom", 7
+      "_minzoom", 12
     ), Map.ofEntries(
       entry("_layer", "transportation_name"),
       entry("class", "primary"),
@@ -995,7 +996,7 @@ class TransportationTest extends AbstractLayerTest {
       entry("route_1_ref", "3"),
       entry("route_2_network", "US:MA"),
       entry("route_2_ref", "2"),
-      entry("_minzoom", 12)
+      entry("_minzoom", 14)
     )), process(lineFeatureWithRelation(
       Stream.concat(
         profile.preprocessOsmRelation(relUS).stream(),
@@ -1050,7 +1051,7 @@ class TransportationTest extends AbstractLayerTest {
       "ref", "2",
       "ref_length", 1,
       "network", "us-state",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeatureWithRelation(
       profile.preprocessOsmRelation(relMA),
       Map.of(
@@ -1075,7 +1076,7 @@ class TransportationTest extends AbstractLayerTest {
       "ref", "US 3;MA 2",
       "ref_length", 9,
       "network", "road",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(lineFeature(
       Map.of(
         "highway", "primary",
@@ -1108,7 +1109,7 @@ class TransportationTest extends AbstractLayerTest {
       "surface", "paved",
       "oneway", 1,
       "ramp", "<null>",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
@@ -1117,7 +1118,7 @@ class TransportationTest extends AbstractLayerTest {
       "ref", "85",
       "ref_length", 2,
       "network", "ca-transcanada",
-      "_minzoom", 6
+      "_minzoom", 14
     )), features);
   }
 
@@ -1137,7 +1138,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "trunk",
-      "_minzoom", 4
+      "_minzoom", 12
     )), features);
   }
 
@@ -1158,7 +1159,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial-arterial",
-      "_minzoom", 4
+      "_minzoom", 12
     )), features);
   }
 
@@ -1180,7 +1181,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial-arterial",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1207,7 +1208,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial-arterial",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1234,7 +1235,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial",
-      "_minzoom", 6
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1261,7 +1262,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial-arterial",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1288,7 +1289,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial",
-      "_minzoom", 6
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1315,7 +1316,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial-arterial",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1342,7 +1343,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial",
-      "_minzoom", 6
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1369,7 +1370,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial-arterial",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1396,7 +1397,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "trunk",
       "network", "ca-provincial",
-      "_minzoom", 6
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -1421,7 +1422,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "trunk",
-      "_minzoom", 6
+      "_minzoom", 12
     )), features);
     boolean caProvPresent = StreamSupport.stream(features.spliterator(), false)
       .flatMap(f -> f.getAttrsAtZoom(13).entrySet().stream())
@@ -1447,14 +1448,14 @@ class TransportationTest extends AbstractLayerTest {
       "class", "motorway",
       "oneway", 1,
       "ramp", "<null>",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
       "ref", "M1",
       "ref_length", 2,
       "network", "gb-motorway",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1473,14 +1474,14 @@ class TransportationTest extends AbstractLayerTest {
       "class", "motorway",
       "oneway", 1,
       "ramp", "<null>",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
       "ref", "M1",
       "ref_length", 2,
       "network", "road",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(1, 0, 0, 1),
       Map.of(
@@ -1508,14 +1509,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "trunk",
-      "_minzoom", 5
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
       "ref", "A272",
       "ref_length", 4,
       "network", "gb-trunk",
-      "_minzoom", 8
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1542,14 +1543,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "primary",
-      "_minzoom", 7
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "primary",
       "ref", "A598",
       "ref_length", 4,
       "network", "gb-primary",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1576,14 +1577,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "secondary",
-      "_minzoom", 9
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "secondary",
       "ref", "B4558",
       "ref_length", 5,
       "network", "gb-primary",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1610,14 +1611,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "tertiary",
-      "_minzoom", 11
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "tertiary",
       "ref", "B4086",
       "ref_length", 5,
       "network", "road",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1646,14 +1647,14 @@ class TransportationTest extends AbstractLayerTest {
       "class", "motorway",
       "oneway", 1,
       "ramp", "<null>",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
       "ref", "M18",
       "ref_length", 3,
       "network", "ie-motorway",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1672,14 +1673,14 @@ class TransportationTest extends AbstractLayerTest {
       "class", "motorway",
       "oneway", 1,
       "ramp", "<null>",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
       "ref", "M18",
       "ref_length", 3,
       "network", "road",
-      "_minzoom", 6
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(1, 0, 0, 1),
       Map.of(
@@ -1707,14 +1708,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "trunk",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
       "ref", "N8",
       "ref_length", 2,
       "network", "ie-national",
-      "_minzoom", 8
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1741,14 +1742,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "primary",
-      "_minzoom", 7
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "primary",
       "ref", "N59",
       "ref_length", 3,
       "network", "ie-national",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1775,14 +1776,14 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "secondary",
-      "_minzoom", 9
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "secondary",
       "ref", "R813",
       "ref_length", 4,
       "network", "ie-regional",
-      "_minzoom", 12
+      "_minzoom", 14
     )), process(SimpleFeature.create(
       newLineString(0, 0, 1, 1),
       Map.of(
@@ -1829,7 +1830,7 @@ class TransportationTest extends AbstractLayerTest {
       "oneway", "<null>",
       "ramp", "<null>",
 
-      "_minzoom", 11,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_type", "line"
     )), process(lineFeature(Map.of(
@@ -1872,7 +1873,7 @@ class TransportationTest extends AbstractLayerTest {
       "brunnel", "<null>",
       "layer", "<null>",
 
-      "_minzoom", 8,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_type", "line"
     )), process(lineFeature(Map.of(
@@ -1884,7 +1885,7 @@ class TransportationTest extends AbstractLayerTest {
     ))));
     assertFeatures(13, List.of(Map.of(
       "layer", "<null>",
-      "_minzoom", 10
+      "_minzoom", 12
     )), process(lineFeature(Map.of(
       "railway", "rail",
       "name", "Boston Subdivision"
@@ -1912,7 +1913,7 @@ class TransportationTest extends AbstractLayerTest {
       "class", "rail",
       "subclass", "narrow_gauge",
 
-      "_minzoom", 10,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_type", "line"
     )), process(lineFeature(Map.of(
@@ -1937,7 +1938,7 @@ class TransportationTest extends AbstractLayerTest {
       "subclass", aerialway,
       "name", "Summit Gondola",
 
-      "_minzoom", 12,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_type", "line"
     )), process(lineFeature(Map.of(
@@ -1957,7 +1958,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "class", "ferry",
 
-      "_minzoom", 4,
+      "_minzoom", 12,
       "_maxzoom", 14,
       "_minpixelsize", 32d,
       "_type", "line"
@@ -1966,7 +1967,7 @@ class TransportationTest extends AbstractLayerTest {
       "class", "ferry",
       "name", "Boston - Provincetown Ferry",
 
-      "_minzoom", 12,
+      "_minzoom", 14,
       "_maxzoom", 14,
       "_type", "line"
     )), process(lineFeature(Map.of(
@@ -2209,7 +2210,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "trunk",
-      "_minzoom", 6
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "trunk",
@@ -2236,7 +2237,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "motorway",
-      "_minzoom", 4
+      "_minzoom", 12
     ), Map.of(
       "_layer", "transportation_name",
       "class", "motorway",
@@ -2263,7 +2264,8 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(classZoom, List.of(Map.of(
       "_layer", "transportation",
       "class", expectedClass,
-      "_minzoom", expectedMinZoom
+      // Imaginarium: made from the far zoom on, whatever upstream's own minzoom is.
+      "_minzoom", Math.max(expectedMinZoom, Imaginarium.FAR_ZOOM)
     )), features);
 
     features = process(lineFeatureWithLength(length, Map.of(
@@ -2274,7 +2276,8 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(classZoom, List.of(Map.of(
       "_layer", "transportation",
       "class", expectedClass + "_construction",
-      "_minzoom", expectedMinZoom
+      // Imaginarium: made from the far zoom on, whatever upstream's own minzoom is.
+      "_minzoom", Math.max(expectedMinZoom, Imaginarium.FAR_ZOOM)
     )), features);
   }
 
@@ -2303,7 +2306,7 @@ class TransportationTest extends AbstractLayerTest {
         "_layer", "transportation",
         "class", "trunk", // don't upgrade to motorway
         "network", "us-interstate",
-        "_minzoom", 4 // US:I network qualifies for z4
+        "_minzoom", 12 // US:I network qualifies for z4
       ),
       Map.of(
         "_layer", "transportation_name",

@@ -25,11 +25,18 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntPredicate;
 import java.util.stream.StreamSupport;
 import org.locationtech.jts.geom.Geometry;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.util.Utils;
 
+/**
+ * Imaginarium: the expected `_minzoom`s in the layers' tests are what our tiles have, not OpenMapTiles': a feature
+ * reaching z14 is made from z14, or for water, aeroway and transportation from z12 if it started lower (see
+ * {@link org.openmaptiles.util.Imaginarium#slimmed}); one ending below z14 (Natural Earth's) is as OpenMapTiles has it.
+ * The post-processing at zooms our tiles have none of is asked of OpenMapTiles' own (see `postProcessedUnwritten`).
+ */
 public abstract class AbstractLayerTest {
 
   final Wikidata.WikidataTranslations wikidataTranslations = new Wikidata.WikidataTranslations();
@@ -53,6 +60,16 @@ public abstract class AbstractLayerTest {
     for (int i = 0; i < expectedList.size(); i++) {
       assertSubmap(expectedList.get(i), TestUtils.toMap(actualList.get(i), zoom));
     }
+  }
+
+  /**
+   * Imaginarium: what OpenMapTiles' own post-processing makes of a layer's features at a zoom our tiles write none of
+   * them at, which the profile is first asked to write nothing of.
+   */
+  List<VectorTile.Feature> postProcessedUnwritten(String layer, int zoom, List<VectorTile.Feature> items)
+    throws GeometryException {
+    assertEquals(List.of(), profile.postProcessLayerFeatures(layer, zoom, items), () -> layer + " at z" + zoom);
+    return profile.postProcessLayerFeaturesUnkept(layer, zoom, items);
   }
 
   static void assertDescending(int... vals) {
@@ -91,7 +108,12 @@ public abstract class AbstractLayerTest {
   }
 
   void assertCoversZoomRange(int minzoom, int maxzoom, String layer, FeatureCollector... featureCollectors) {
-    Map<?, ?>[] zooms = new Map[Math.max(15, maxzoom + 1)];
+    assertCoversZooms(zoom -> zoom >= minzoom && zoom <= maxzoom, layer, featureCollectors);
+  }
+
+  /** That one feature of the layer is at each zoom to 14 that `covered` says, and none at the others. */
+  void assertCoversZooms(IntPredicate covered, String layer, FeatureCollector... featureCollectors) {
+    Map<?, ?>[] zooms = new Map[15];
     for (var features : featureCollectors) {
       for (var feature : features) {
         if (feature.getLayer().equals(layer)) {
@@ -106,7 +128,7 @@ public abstract class AbstractLayerTest {
       }
     }
     for (int zoom = 0; zoom <= 14; zoom++) {
-      if (zoom < minzoom || zoom > maxzoom) {
+      if (!covered.test(zoom)) {
         if (zooms[zoom] != null) {
           fail("Expected nothing at z" + zoom + " but found: " + zooms[zoom]);
         }
@@ -230,7 +252,8 @@ public abstract class AbstractLayerTest {
 
     assertEquals(
       List.of(connected),
-      profile.postProcessLayerFeatures(layer, zoom, List.of(line1, line2))
+      zoom == 14 ? profile.postProcessLayerFeatures(layer, zoom, List.of(line1, line2)) :
+        postProcessedUnwritten(layer, zoom, List.of(line1, line2))
     );
   }
 

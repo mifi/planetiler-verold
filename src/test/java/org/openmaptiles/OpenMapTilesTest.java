@@ -5,18 +5,22 @@ import static com.onthegomap.planetiler.TestUtils.assertFeatureNear;
 import static com.onthegomap.planetiler.util.Gzip.gunzip;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import com.onthegomap.planetiler.TestUtils;
 import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.archive.Tile;
 import com.onthegomap.planetiler.config.Arguments;
+import com.onthegomap.planetiler.geo.TileCoord;
 import com.onthegomap.planetiler.mbtiles.Mbtiles;
 import com.onthegomap.planetiler.reader.FileFormatException;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -37,6 +41,10 @@ import org.openmaptiles.util.VerifyMonaco;
  * <p>
  * Generates an entire map for the smallest openstreetmap extract available (Monaco) and asserts that expected output
  * features exist
+ * <p>
+ * Imaginarium: only z12 and z14 are written (see {@link org.openmaptiles.util.Imaginarium}), z12 with water, aeroway
+ * and the tunnels and bridges only; buildings are not merged, and an id each keeps the lines apart, so the counts are
+ * ours.
  */
 class OpenMapTilesTest {
 
@@ -103,10 +111,70 @@ class OpenMapTilesTest {
   }
 
   @Test
-  void testContainsOceanPolyons() {
-    assertFeatureNear(mbtiles, "water", Map.of(
-      "class", "ocean"
-    ), 7.4484, 43.70783, 0, 14);
+  void testContainsOceanPolyons() throws IOException {
+    // Imaginarium: at z12 and z14, and no tile at all at the other zooms (see testOnlyFarAndNearZooms).
+    for (int zoom : List.of(12, 14)) {
+      var coord = TileCoord.aroundLngLat(7.4484, 43.70783, zoom);
+      var features = VectorTile.decode(gunzip(mbtiles.getTile(coord.x(), coord.y(), zoom)));
+      assertTrue(features.stream().anyMatch(f -> "water".equals(f.layer()) && "ocean".equals(f.tags().get("class"))),
+        () -> "z" + zoom);
+    }
+  }
+
+  @Test
+  void testOnlyFarAndNearZooms() {
+    // Imaginarium: only the far zoom (12) and the near (14) are written.
+    assertEquals(Set.of(12, 14),
+      TestUtils.getTiles(mbtiles).stream().map(tile -> tile.coord().z()).collect(Collectors.toSet()));
+  }
+
+  @Test
+  void testFarZoomIsSlim() throws IOException {
+    // Imaginarium: z12 has water, aeroway and the tunnels and bridges of transportation, nothing else.
+    for (var tile : TestUtils.getTiles(mbtiles)) {
+      if (tile.coord().z() == 12) {
+        for (var feature : VectorTile.decode(gunzip(tile.bytes()))) {
+          assertTrue(Set.of("water", "aeroway", "transportation").contains(feature.layer()), feature::toString);
+          if ("transportation".equals(feature.layer())) {
+            assertTrue(Set.of("tunnel", "bridge").contains(feature.tags().get("brunnel")), feature::toString);
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  void testBuildingsCarryIdsAndFields() throws IOException {
+    // Imaginarium: every building and building part its own feature with its id, and their fields at z14, the counts
+    // as numbers and the colours as #rrggbb.
+    int parts = 0;
+    int levels = 0;
+
+    for (var tile : TestUtils.getTiles(mbtiles)) {
+      for (var feature : VectorTile.decode(gunzip(tile.bytes()))) {
+        if (!"building".equals(feature.layer()) || feature.tags().containsKey("entrance")) {
+          continue;
+        }
+        var tags = feature.tags();
+        assertTrue(tags.get("osm_id") instanceof Long, feature::toString);
+        assertTrue(!tags.containsKey("roof:orientation"), feature::toString);
+        if (tags.containsKey("building:part")) {
+          parts += 1;
+        }
+        if (tags.containsKey("building:levels")) {
+          assertTrue(tags.get("building:levels") instanceof Number, feature::toString);
+          levels += 1;
+        }
+        for (var key : List.of("building:colour", "roof:colour")) {
+          if (tags.containsKey(key)) {
+            assertTrue(tags.get(key).toString().matches("#[0-9a-f]{6}"), feature::toString);
+
+          }
+        }
+      }
+    }
+    assertTrue(parts > 0, "parts");
+    assertTrue(levels > 0, "levels");
   }
 
   @Test
@@ -115,7 +183,7 @@ class OpenMapTilesTest {
       "class", "country",
       "iso_a2", "MC",
       "name", "Monaco"
-    ), 7.42769, 43.73235, 2, 14);
+    ), 7.42769, 43.73235, 14, 14);
   }
 
   @Test
@@ -123,14 +191,14 @@ class OpenMapTilesTest {
     assertFeatureNear(mbtiles, "place", Map.of(
       "name", "Les Moneghetti",
       "class", "suburb"
-    ), 7.41746, 43.73638, 11, 14);
+    ), 7.41746, 43.73638, 14, 14);
   }
 
   @Test
   void testContainsBuildings() {
-    assertFeatureNear(mbtiles, "building", Map.of(), 7.41919, 43.73401, 13, 14);
+    assertFeatureNear(mbtiles, "building", Map.of(), 7.41919, 43.73401, 14, 14);
     assertNumFeatures("building", Map.of(), 14, 1316, Polygon.class);
-    assertNumFeatures("building", Map.of(), 13, 196, Polygon.class);
+    assertNumFeatures("building", Map.of(), 13, 0, Polygon.class);
   }
 
   @Test
@@ -147,7 +215,7 @@ class OpenMapTilesTest {
       "admin_level", 2L,
       "maritime", 1L,
       "disputed", 0L
-    ), 7.41884, 43.72396, 4, 14);
+    ), 7.41884, 43.72396, 14, 14);
   }
 
   @Test
@@ -199,10 +267,10 @@ class OpenMapTilesTest {
     assertNumFeatures("transportation", Map.of(
       "class", "path",
       "subclass", "footway"
-    ), 14, 828, LineString.class);
+    ), 14, 1109, LineString.class);
     assertNumFeatures("transportation", Map.of(
       "class", "primary"
-    ), 14, 249, LineString.class);
+    ), 14, 340, LineString.class);
   }
 
   @Test

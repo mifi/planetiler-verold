@@ -23,14 +23,18 @@ public class VerifyMonaco {
    */
   public static Verify verify(Mbtiles mbtiles) {
     Verify verify = Verify.verify(mbtiles);
-    verify.checkMinFeatureCount(MONACO_BOUNDS, "building", Map.of(), 13, 14, 100, Polygon.class);
-    verify.checkMinFeatureCount(MONACO_BOUNDS, "transportation", Map.of(), 10, 14, 5, LineString.class);
+    // Imaginarium: only z12 and z14 are written, z12 with water, aeroway and the tunnels and bridges only.
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "building", Map.of(), 14, 14, 100, Polygon.class);
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "transportation", Map.of(), 14, 14, 5, LineString.class);
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "transportation", Map.of("brunnel", "tunnel"), 12, 12, 5,
+      LineString.class);
     verify.checkMinFeatureCount(MONACO_BOUNDS, "landcover", Map.of(
       "class", "grass",
       "subclass", "park"
     ), 14, 10, Polygon.class);
-    verify.checkMinFeatureCount(MONACO_BOUNDS, "water", Map.of("class", "ocean"), 0, 14, 1, Polygon.class);
-    verify.checkMinFeatureCount(MONACO_BOUNDS, "place", Map.of("class", "country"), 2, 14, 1, Point.class);
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "water", Map.of("class", "ocean"), 12, 12, 1, Polygon.class);
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "water", Map.of("class", "ocean"), 14, 14, 1, Polygon.class);
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "place", Map.of("class", "country"), 14, 14, 1, Point.class);
     return verify;
   }
 
