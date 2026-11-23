@@ -20,6 +20,7 @@ import com.onthegomap.planetiler.util.Translations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.openmaptiles.addons.ExtraLayers;
 import org.openmaptiles.generated.OpenMapTilesSchema;
@@ -27,6 +28,7 @@ import org.openmaptiles.generated.Tables;
 import org.openmaptiles.layers.Transportation;
 import org.openmaptiles.layers.TransportationName;
 import org.openmaptiles.util.Imaginarium;
+import org.openmaptiles.util.ImaginariumWays;
 
 /**
  * Delegates the logic for generating a map to individual implementations in the {@code layers} package.
@@ -82,6 +84,10 @@ public class OpenMapTilesProfile extends ForwardingProfile {
   private final MultiExpression.Index<RowDispatch> osmMappings;
   /** Index variant that filters out any table only used by layers that implement IgnoreWikidata class. */
   private final MultiExpression.Index<Boolean> wikidataMappings;
+  /**
+   * Imaginarium: the tunnel, bridge and covered ways written beside the tiles, or null (see {@link ImaginariumWays}).
+   */
+  private final ImaginariumWays imaginariumWays;
 
   public OpenMapTilesProfile(Planetiler runner) {
     this(runner.translations(), runner.config(), runner.stats());
@@ -89,6 +95,7 @@ public class OpenMapTilesProfile extends ForwardingProfile {
 
   public OpenMapTilesProfile(Translations translations, PlanetilerConfig config, Stats stats) {
     super(config);
+    imaginariumWays = ImaginariumWays.from(config);
 
     // register release/finish/feature postprocessor/osm relationship handler methods...
     List<Handler> layers = new ArrayList<>();
@@ -173,7 +180,29 @@ public class OpenMapTilesProfile extends ForwardingProfile {
   @Override
   public void processFeature(SourceFeature sourceFeature, FeatureCollector features) {
     super.processFeature(sourceFeature, features);
+    if (imaginariumWays != null) {
+      imaginariumWays.offer(sourceFeature, features);
+    }
     Imaginarium.slimmed(features);
+  }
+
+  /** The ways as the layers want them, and the structures' nodes noted (see {@link ImaginariumWays#preprocess}). */
+  @Override
+  public void preprocessOsmWay(OsmElement.Way way) {
+    super.preprocessOsmWay(way);
+    if (imaginariumWays != null) {
+      imaginariumWays.preprocess(way);
+    }
+  }
+
+  /** And the structures' ways written in full once the OpenStreetMap source is done. */
+  @Override
+  public void finish(String sourceName, FeatureCollector.Factory featureCollectors,
+    Consumer<FeatureCollector.Feature> next) {
+    super.finish(sourceName, featureCollectors, next);
+    if (imaginariumWays != null && OSM_SOURCE.equals(sourceName)) {
+      imaginariumWays.close();
+    }
   }
 
   /** Only what Imaginarium reads at each zoom (see {@link Imaginarium#kept}). */
