@@ -47,6 +47,7 @@ import com.onthegomap.planetiler.ForwardingProfile;
 import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.geo.GeometryException;
+import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmRelationInfo;
 import com.onthegomap.planetiler.stats.Stats;
@@ -64,8 +65,10 @@ import org.locationtech.jts.geom.TopologyException;
 import org.locationtech.jts.index.strtree.STRtree;
 import org.locationtech.jts.operation.overlayng.OverlayNG;
 import org.locationtech.jts.operation.overlayng.OverlayNGRobust;
+import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
+import org.openmaptiles.util.Imaginarium;
 
 /**
  * Defines the logic for generating map elements for buildings in the {@code building} layer from source features.
@@ -78,7 +81,8 @@ public class Building implements
   OpenMapTilesSchema.Building,
   Tables.OsmBuildingPolygon.Handler,
   ForwardingProfile.LayerPostProcessor,
-  ForwardingProfile.OsmRelationPreprocessor {
+  ForwardingProfile.OsmRelationPreprocessor,
+  OpenMapTilesProfile.OsmAllProcessor {
 
   /*
    * Emit all buildings from OSM data at z14.
@@ -121,7 +125,7 @@ public class Building implements
     this.mergeZ13Buildings = config.arguments().getBoolean(
       "building_merge_z13",
       "building: merge nearby buildings at z13",
-      true
+      false
     );
     this.hideOutlinesWithParts = config.arguments().getBoolean(
       "building_hide_outlines_with_parts",
@@ -187,6 +191,8 @@ public class Building implements
         .setAttrWithMinzoom(Fields.HIDE_3D, hide3d, 14)
         .setAttrWithMinzoom(TEMP_PART, hideOutlinesWithParts && element.buildingpart() != null ? true : null, 14)
         .setSortKey(renderHeight);
+      // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away).
+      Imaginarium.tagged(feature, element.source(), Imaginarium.BUILDING_TAGS);
       if (mergeZ13Buildings) {
         feature
           .setMinPixelSize(0.1)
@@ -201,10 +207,20 @@ public class Building implements
     if (hideOutlinesWithParts && zoom >= 14) {
       hideOutlinesCoveredByParts(items);
     }
+    // Imaginarium: never merged at z14, each building its own feature with its own id; merging (which reduces the
+    // size of some heavy z14 tiles with many small buildings by 60% or more) lost which building was which.
     return (mergeZ13Buildings && zoom == 13) ?
       FeatureMerge.mergeNearbyPolygons(items, 4, 4, 0.5, 0.5) :
-      // reduces the size of some heavy z14 tiles with many small buildings by 60% or more
-      FeatureMerge.mergeMultiPolygon(items);
+      items;
+  }
+
+  /** Imaginarium: an entrance (a node tagged entrance=*), a point in the building layer with its id and tags. */
+  @Override
+  public void processAllOsm(SourceFeature feature, FeatureCollector features) {
+    if (feature.isPoint() && feature.hasTag("entrance")) {
+      var entrance = features.point(LAYER_NAME).setBufferPixels(BUFFER_SIZE).setMinZoom(Imaginarium.NEAR_ZOOM);
+      Imaginarium.tagged(entrance, feature, Imaginarium.ENTRANCE_TAGS);
+    }
   }
 
   /**

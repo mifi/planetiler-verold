@@ -37,10 +37,14 @@ package org.openmaptiles.layers;
 
 import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.config.PlanetilerConfig;
+import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Translations;
+import java.util.List;
+import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
+import org.openmaptiles.util.Imaginarium;
 
 /**
  * Defines the logic for generating map elements in the {@code aeroway} layer from source features.
@@ -52,7 +56,8 @@ public class Aeroway implements
   OpenMapTilesSchema.Aeroway,
   Tables.OsmAerowayLinestring.Handler,
   Tables.OsmAerowayPolygon.Handler,
-  Tables.OsmAerowayPoint.Handler {
+  Tables.OsmAerowayPoint.Handler,
+  OpenMapTilesProfile.OsmAllProcessor {
 
   public Aeroway(Translations translations, PlanetilerConfig config, Stats stats) {}
 
@@ -79,5 +84,20 @@ public class Aeroway implements
       .setMinZoom(14)
       .setAttr(Fields.CLASS, element.aeroway())
       .setAttr(Fields.REF, element.ref());
+  }
+
+  /**
+   * Imaginarium: a helipad mapped as a point (OpenMapTiles has only those mapped as areas), from the far zoom on, as the
+   * helipad areas are read.
+   */
+  @Override
+  public void processAllOsm(SourceFeature feature, FeatureCollector features) {
+    if (feature.isPoint() && feature.hasTag("aeroway", "helipad")) {
+      var helipad = features.point(LAYER_NAME)
+        .setMinZoom(Imaginarium.FAR_ZOOM)
+        .setAttr(Fields.CLASS, "helipad")
+        .setAttr(Fields.REF, feature.getString("ref"));
+      Imaginarium.tagged(helipad, feature, List.of());
+    }
   }
 }

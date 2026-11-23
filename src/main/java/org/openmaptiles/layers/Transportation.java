@@ -75,6 +75,7 @@ import org.locationtech.jts.geom.prep.PreparedGeometryFactory;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
+import org.openmaptiles.util.Imaginarium;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -539,6 +540,10 @@ public class Transportation implements
         .setSortKey(element.zOrder())
         .setMinZoom(minzoom);
 
+      // Imaginarium: each way by its id, and the road's details as tagged.
+      Imaginarium.tagged(feature, element.source(), Imaginarium.ROAD_TAGS);
+      Imaginarium.taggedRenamed(feature, element.source(), Imaginarium.ROAD_RENAMED);
+
       if (isFootwayOrSteps(highway)) {
         feature
           .setAttr(Fields.LEVEL, Parse.parseLongOrNull(element.source().getTag("level")))
@@ -649,7 +654,7 @@ public class Transportation implements
       } else {
         minzoom = 14;
       }
-      features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+      var feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
         .setAttr(Fields.CLASS, clazz)
         .setAttr(Fields.SUBCLASS, railway)
         .setAttr(Fields.SERVICE, service(service))
@@ -659,12 +664,16 @@ public class Transportation implements
         .setSortKey(element.zOrder())
         .setMinPixelSize(0) // merge during post-processing, then limit by size
         .setMinZoom(minzoom);
+      Imaginarium.tagged(feature, element.source(), RAIL_TAGS);
     }
   }
 
+  /** Imaginarium: what a railway carries as tagged, beside its id. */
+  private static final List<String> RAIL_TAGS = List.of("tunnel", "covered");
+
   @Override
   public void process(Tables.OsmAerialwayLinestring element, FeatureCollector features) {
-    features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+    var feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
       .setAttr(Fields.CLASS, "aerialway")
       .setAttr(Fields.SUBCLASS, element.aerialway())
       .setAttr(Fields.SERVICE, service(element.service()))
@@ -675,11 +684,12 @@ public class Transportation implements
       .setSortKey(element.zOrder())
       .setMinPixelSize(0) // merge during post-processing, then limit by size
       .setMinZoom(12);
+    Imaginarium.tagged(feature, element.source(), List.of());
   }
 
   @Override
   public void process(Tables.OsmShipwayLinestring element, FeatureCollector features) {
-    features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+    var feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
       .setAttr(Fields.CLASS, element.shipway()) // "ferry"
       // no subclass
       .setAttr(Fields.SERVICE, service(element.service()))
@@ -690,6 +700,7 @@ public class Transportation implements
       .setMinPixelSize(0) // merge during post-processing, then limit by size
       .setMinZoom(4)
       .setMinPixelSizeBelowZoom(10, 32); // `sql_filter: ST_Length(...)` used in OpenMapTiles translates to 32px
+    Imaginarium.tagged(feature, element.source(), List.of());
   }
 
   @Override
@@ -701,13 +712,14 @@ public class Transportation implements
       (!element.source().canBeLine() && element.layer() >= 0)) {
       String highwayClass = highwayClass(element.highway(), element.publicTransport(), null, element.manMade());
       if (highwayClass != null) {
-        features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+        var feature = features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
           .setAttr(Fields.CLASS, highwayClass)
           .setAttr(Fields.SUBCLASS, highwaySubclass(highwayClass, element.publicTransport(), element.highway()))
           .setAttr(Fields.BRUNNEL, brunnel("bridge".equals(manMade), false, false))
           .setAttr(Fields.LAYER, nullIfLong(element.layer(), 0))
           .setSortKey(element.zOrder())
           .setMinZoom(13);
+        Imaginarium.tagged(feature, element.source(), List.of());
       }
     }
   }

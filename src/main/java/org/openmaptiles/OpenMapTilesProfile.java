@@ -8,8 +8,10 @@ import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.ForwardingProfile;
 import com.onthegomap.planetiler.Planetiler;
 import com.onthegomap.planetiler.Profile;
+import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.expression.MultiExpression;
+import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.reader.SimpleFeature;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
@@ -24,6 +26,7 @@ import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
 import org.openmaptiles.layers.Transportation;
 import org.openmaptiles.layers.TransportationName;
+import org.openmaptiles.util.Imaginarium;
 
 /**
  * Delegates the logic for generating a map to individual implementations in the {@code layers} package.
@@ -164,6 +167,21 @@ public class OpenMapTilesProfile extends ForwardingProfile {
         }
       });
     }
+  }
+
+  /** Each feature as the layers made it, then kept to the zooms Imaginarium reads (see {@link Imaginarium#slimmed}). */
+  @Override
+  public void processFeature(SourceFeature sourceFeature, FeatureCollector features) {
+    super.processFeature(sourceFeature, features);
+    Imaginarium.slimmed(features);
+  }
+
+  /** Only what Imaginarium reads at each zoom (see {@link Imaginarium#kept}). */
+  @Override
+  public List<VectorTile.Feature> postProcessLayerFeatures(String layer, int zoom, List<VectorTile.Feature> items)
+    throws GeometryException {
+    var kept = Imaginarium.kept(layer, zoom, items);
+    return kept.isEmpty() ? kept : super.postProcessLayerFeatures(layer, zoom, kept);
   }
 
   @Override
