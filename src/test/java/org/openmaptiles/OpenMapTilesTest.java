@@ -34,6 +34,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.openmaptiles.util.Imaginarium;
 import org.openmaptiles.util.VerifyMonaco;
 
 /**
@@ -187,6 +188,42 @@ class OpenMapTilesTest {
   }
 
   @Test
+  void testWrittenWithoutWhatNothingReads() throws IOException {
+    // Imaginarium: ids only on buildings' outlines and parts and on transportation, landcover only the parks, a poi's
+    // name only a fuel station's, no house numbers' text; and the street furniture and trees as points.
+    Map<String, Integer> furniture = new java.util.HashMap<>();
+    for (var tile : TestUtils.getTiles(mbtiles)) {
+      for (var feature : VectorTile.decode(gunzip(tile.bytes()))) {
+        var tags = feature.tags();
+        boolean ids = "transportation".equals(feature.layer()) ||
+          ("building".equals(feature.layer()) && !tags.containsKey("entrance"));
+        assertTrue(ids ? feature.id() != 0 : feature.id() == 0, feature::toString);
+        switch (feature.layer()) {
+          case "landcover" -> assertTrue(Imaginarium.LANDCOVER_KEPT.contains(tags.get("subclass")), feature::toString);
+          case "housenumber" -> assertTrue(tags.isEmpty(), feature::toString);
+          case "poi" -> {
+            assertTrue(!tags.containsKey("rank") && !tags.containsKey("indoor"), feature::toString);
+            assertTrue(tags.keySet().stream().noneMatch(key -> key.startsWith("name:") || key.startsWith("name_")),
+              feature::toString);
+            assertTrue(!tags.containsKey("name") || "fuel".equals(tags.get("class")), feature::toString);
+            if (Imaginarium.FURNITURE.containsKey(tags.get("class"))) {
+              furniture.merge((String) tags.get("class"), 1, Integer::sum);
+            }
+          }
+          case "water" -> assertTrue(!tags.containsKey("id"), feature::toString);
+          case "waterway" -> assertTrue(!tags.containsKey("name"), feature::toString);
+          case "transportation" -> assertTrue(!tags.containsKey("access") && !tags.containsKey("level"),
+            feature::toString);
+          default -> {
+          }
+        }
+      }
+    }
+    assertTrue(furniture.getOrDefault("bench", 0) > 0, furniture::toString);
+    assertTrue(furniture.getOrDefault("tree", 0) > 0, furniture::toString);
+  }
+
+  @Test
   void testBuildingsWholeInOneTile() throws IOException {
     // Imaginarium: each building and building part in one tile only but where marked `elsewhere`, whole there (nothing
     // of it at the edge of what the tile holds of it), and each part in the tile its building is in.
@@ -252,9 +289,8 @@ class OpenMapTilesTest {
 
   @Test
   void testContainsHousenumber() {
-    assertFeatureNear(mbtiles, "housenumber", Map.of(
-      "housenumber", "27"
-    ), 7.42117, 43.73652, 14, 14);
+    // Imaginarium: the points alone, the numbers not read.
+    assertFeatureNear(mbtiles, "housenumber", Map.of(), 7.42117, 43.73652, 14, 14);
     assertNumFeatures("housenumber", Map.of(), 14, 231, Point.class);
   }
 
@@ -283,10 +319,11 @@ class OpenMapTilesTest {
       "class", "grass",
       "subclass", "park"
     ), 14, 20, Polygon.class);
+    // Imaginarium: only the parks.
     assertNumFeatures("landcover", Map.of(
       "class", "grass",
       "subclass", "garden"
-    ), 14, 33, Polygon.class);
+    ), 14, 0, Polygon.class);
   }
 
   @Test

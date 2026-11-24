@@ -218,12 +218,12 @@ public class OpenMapTilesProfile extends ForwardingProfile {
     }
   }
 
-  /** Only what Imaginarium reads at each zoom (see {@link Imaginarium#kept}). */
+  /** Only what Imaginarium reads at each zoom (see {@link Imaginarium#kept}, {@link Imaginarium#trimmed}). */
   @Override
   public List<VectorTile.Feature> postProcessLayerFeatures(String layer, int zoom, List<VectorTile.Feature> items)
     throws GeometryException {
     var kept = Imaginarium.kept(layer, zoom, items);
-    return kept.isEmpty() ? kept : Imaginarium.unmarked(super.postProcessLayerFeatures(layer, zoom, kept));
+    return kept.isEmpty() ? kept : Imaginarium.trimmed(layer, super.postProcessLayerFeatures(layer, zoom, kept));
   }
 
   /** And each building whole in the one tile it is at home in (see {@link ImaginariumBuildings#homed}). */

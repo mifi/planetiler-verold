@@ -72,7 +72,7 @@ public final class ImaginariumWays {
       (said(tags.get("tunnel")) || said(tags.get("bridge")) || said(tags.get("covered")));
   }
 
-  /** Pass 1: the nodes of the structures' ways noted. */
+  /** Pass 1: the nodes of the structures' ways noted (by the pass's threads at once, so under a lock). */
   public void preprocess(OsmElement.Way way) {
     if (structure(way.tags())) {
       synchronized (watched) {
@@ -98,12 +98,9 @@ public final class ImaginariumWays {
     }
     var nodes = way.nodes();
     boolean wanted = structure(way.tags());
-    if (!wanted) {
-      synchronized (watched) {
-        for (int at = 0; at < nodes.size() && !wanted; at++) {
-          wanted = watched.contains(nodes.get(at));
-        }
-      }
+    // (Read without a lock: the set is only written in pass 1, which is over before pass 2 starts.)
+    for (int at = 0; at < nodes.size() && !wanted; at++) {
+      wanted = watched.contains(nodes.get(at));
     }
     if (!wanted) {
       return;

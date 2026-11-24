@@ -51,6 +51,7 @@ import com.onthegomap.planetiler.expression.MultiExpression;
 import com.onthegomap.planetiler.geo.GeoUtils;
 import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.reader.SimpleFeature;
+import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Parse;
 import com.onthegomap.planetiler.util.Translations;
@@ -65,6 +66,7 @@ import org.locationtech.jts.geom.Point;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
+import org.openmaptiles.util.Imaginarium;
 import org.openmaptiles.util.OmtLanguageUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +83,8 @@ public class Poi implements
   Tables.OsmPoiPoint.Handler,
   Tables.OsmPoiPolygon.Handler,
   ForwardingProfile.LayerPostProcessor,
-  ForwardingProfile.FinishHandler {
+  ForwardingProfile.FinishHandler,
+  OpenMapTilesProfile.OsmAllProcessor {
 
   /*
    * process() creates the raw POI feature from OSM elements and postProcess()
@@ -322,6 +325,31 @@ public class Poi implements
       .setPointLabelGridPixelSize(14, 64)
       .setSortKey(rankOrder)
       .setMinZoom(minzoom);
+  }
+
+  /**
+   * Imaginarium: a street lamp, a bench, a picnic table or a tree mapped as a point, at the near zoom, by its value as
+   * class and subclass (see {@link Imaginarium#FURNITURE}); a tree with its leaf type and genus.
+   */
+  @Override
+  public void processAllOsm(SourceFeature feature, FeatureCollector features) {
+    if (!feature.isPoint()) {
+      return;
+    }
+    for (var furniture : Imaginarium.FURNITURE.entrySet()) {
+      if (feature.hasTag(furniture.getValue(), furniture.getKey())) {
+        var point = features.point(LAYER_NAME).setBufferPixels(Imaginarium.FURNITURE_BUFFER)
+          .setMinZoom(Imaginarium.NEAR_ZOOM)
+          .setAttr(Fields.CLASS, furniture.getKey())
+          .setAttr(Fields.SUBCLASS, furniture.getKey());
+        if ("tree".equals(furniture.getKey())) {
+          for (String key : Imaginarium.TREE_TAGS) {
+            point.setAttr(key, nullIfEmpty(feature.getString(key)));
+          }
+        }
+        return;
+      }
+    }
   }
 
   @Override

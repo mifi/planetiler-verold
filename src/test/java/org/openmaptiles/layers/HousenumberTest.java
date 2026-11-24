@@ -143,7 +143,7 @@ class HousenumberTest extends AbstractLayerTest {
       1
     );
 
-    var result = profile.postProcessLayerFeatures(layerName, 14, List.of(hn1, hn2));
+    var result = profile.postProcessLayerFeaturesUnkept(layerName, 14, List.of(hn1, hn2));
 
     Assertions.assertEquals(List.of(
       pointFeature(

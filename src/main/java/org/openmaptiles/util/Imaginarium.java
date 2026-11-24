@@ -2,11 +2,15 @@ package org.openmaptiles.util;
 
 import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.VectorTile;
+import com.onthegomap.planetiler.geo.GeometryType;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmSourceFeature;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,8 +34,8 @@ public final class Imaginarium {
   /**
    * The OpenStreetMap id of what a feature was made of, a node's or a way's, a relation's negated: carried while the
    * features are made and merged, so no two ways merge into one, and taken off as each tile is written (see
-   * {@link #unmarked}). The tile says it as each feature's own id instead, which Planetiler writes as the id × 10 + 1,
-   * 2 or 3 for a node, a way or a relation.
+   * {@link #trimmed}). The tile says it as each feature's own id instead, which Planetiler writes as the id × 10 + 1, 2
+   * or 3 for a node, a way or a relation.
    */
   public static final String OSM_ID = "_osm_id";
 
@@ -75,15 +79,99 @@ public final class Imaginarium {
       -source.id() : source.id();
   }
 
-  /** Takes the ids off what a tile's layer is written with (see OSM_ID): the features' own ids say them. */
-  public static List<VectorTile.Feature> unmarked(List<VectorTile.Feature> items) {
-    for (var item : items) {
-      if (item.tags().containsKey(OSM_ID)) {
-        item.tags().remove(OSM_ID);
-      }
+  /**
+   * The layers whose features keep their own ids, which the app reads: a building's (outlines and parts; a part names
+   * its outline's, `parent`) and a transportation way's (a tunnel's way, which the tunnel index names). An entrance, a
+   * point of the building layer, keeps none: nothing reads it.
+   */
+  private static final Set<String> WITH_IDS = Set.of("building", "transportation");
+
+  /** The fields of each layer nothing in the app reads, beside the names (see {@link #unread}). */
+  private static final Map<String, Set<String>> UNREAD = Map.of(
+    "poi", Set.of("rank", "indoor"),
+    "housenumber", Set.of("housenumber"),
+    "water", Set.of("id"),
+    "transportation", Set.of("access", "bicycle", "foot", "horse", "mtb_scale", "official", "ramp", "toll", "indoor",
+      "level"));
+
+  /** The poi class whose `name` is read: a fuel or charging station's, for its brand (the app's forecourts.ts). */
+  private static final String NAMED_POI = "fuel";
+
+  /**
+   * Whether a field of a layer's feature is one nothing reads, and so not written: the id carried while the features
+   * are made (see OSM_ID), UNREAD, a poi's names but a fuel station's `name`, and a waterway's names.
+   */
+  private static boolean unread(String layer, String key, Map<String, Object> tags) {
+    if (OSM_ID.equals(key) || UNREAD.getOrDefault(layer, Set.of()).contains(key)) {
+      return true;
     }
-    return items;
+    boolean name = "name".equals(key) || key.startsWith("name:") || key.startsWith("name_");
+    return switch (layer) {
+      case "poi" -> name && !("name".equals(key) && NAMED_POI.equals(tags.get("class")));
+      case "waterway" -> name;
+      default -> false;
+    };
   }
+
+  /**
+   * What a tile's layer is written with: each feature without what nothing reads (see {@link #unread}), and without its
+   * own id but where the app reads it (see WITH_IDS).
+   */
+  public static List<VectorTile.Feature> trimmed(String layer, List<VectorTile.Feature> items) {
+    boolean ids = WITH_IDS.contains(layer);
+    List<VectorTile.Feature> trimmed = new ArrayList<>(items.size());
+    for (var item : items) {
+      boolean idKept = item.id() == VectorTile.NO_FEATURE_ID ||
+        (ids && !("building".equals(layer) && item.geometry().geomType() == GeometryType.POINT));
+      boolean unread = false;
+      for (var key : item.tags().keySet()) {
+        unread |= unread(layer, key, item.tags());
+      }
+      if (idKept && !unread) {
+        trimmed.add(item);
+        continue;
+      }
+      Map<String, Object> tags = new HashMap<>(item.tags().size());
+      item.tags().forEach((key, value) -> {
+        if (!unread(layer, key, item.tags())) {
+          tags.put(key, value);
+        }
+      });
+      trimmed.add(new VectorTile.Feature(item.layer(), idKept ? item.id() : VectorTile.NO_FEATURE_ID, item.geometry(),
+        tags, item.group()));
+    }
+    return trimmed;
+  }
+
+  /**
+   * The subclasses of landcover the app reads, its parks (its vector/leisure.ts PARKS): the rest, the woods, grass,
+   * farmland, rock and ice, it has from ESA WorldCover, not the tiles.
+   */
+  public static final Set<String> LANDCOVER_KEPT = Set.of("park", "village_green", "recreation_ground");
+
+  /**
+   * The points of street furniture and trees the world can stand up, each in the poi layer by its key's value as both
+   * its class and its subclass (`street_lamp`, `bench`, `picnic_table`, `tree`), at the near zoom; a tree with its
+   * `leaf_type` and `genus` as tagged.
+   */
+  public static final Map<String, String> FURNITURE = furniture();
+
+  /** FURNITURE in a fixed order, so a node tagged as two of them is the same one in every build: the first. */
+  private static Map<String, String> furniture() {
+    var furniture = new java.util.LinkedHashMap<String, String>();
+    furniture.put("street_lamp", "highway");
+    furniture.put("bench", "amenity");
+    furniture.put("picnic_table", "leisure");
+    furniture.put("tree", "natural");
+    return java.util.Collections.unmodifiableMap(furniture);
+  }
+
+  public static final List<String> TREE_TAGS = List.of("leaf_type", "genus");
+  /**
+   * How far past its edge a tile carries the furniture and the trees, z14 pixels: a building's margin, not the poi
+   * layer's 64 for its labels, which would carry each into two or more tiles.
+   */
+  public static final double FURNITURE_BUFFER = 4;
 
   /** Puts the id and these tags, as tagged, on a feature at the near zoom. */
   public static void tagged(FeatureCollector.Feature feature, SourceFeature source, List<String> keys) {

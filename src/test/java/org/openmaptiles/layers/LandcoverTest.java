@@ -99,37 +99,41 @@ class LandcoverTest extends AbstractLayerTest {
 
   @Test
   void testOsmLandcover() {
+    // Imaginarium: only the parks the app reads (Imaginarium.LANDCOVER_KEPT); the woods, the grass, the sand it has from
+    // ESA WorldCover.
     assertFeatures(13, List.of(Map.of(
       "_layer", "landcover",
-      "subclass", "wood",
-      "class", "wood",
+      "subclass", "park",
+      "class", "grass",
       "_minpixelsize", 8d,
       "_numpointsattr", "_numpoints",
       "_minzoom", 14,
       "_maxzoom", 14
+    ), Map.of(
+      "_layer", "poi",
+      "class", "park"
     )), process(polygonFeature(Map.of(
-      "natural", "wood"
+      "leisure", "park"
     ))));
-    assertFeatures(12, List.of(Map.of(
+    assertFeatures(13, List.of(Map.of(
       "_layer", "landcover",
-      "subclass", "forest",
-      "class", "wood",
-      "_minpixelsize", 8d,
-      "_minzoom", 14,
-      "_maxzoom", 14
+      "subclass", "village_green",
+      "class", "grass"
     )), process(polygonFeature(Map.of(
-      "landuse", "forest"
+      "landuse", "village_green"
     ))));
-    assertFeatures(10, List.of(Map.of(
+    assertFeatures(13, List.of(Map.of(
       "_layer", "landcover",
-      "subclass", "dune",
-      "class", "sand",
-      "_minpixelsize", 4d,
-      "_minzoom", 14,
-      "_maxzoom", 14
+      "subclass", "recreation_ground",
+      "class", "grass"
     )), process(polygonFeature(Map.of(
-      "natural", "dune"
+      "landuse", "recreation_ground"
     ))));
+    for (Map<String, Object> unread : List.<Map<String, Object>>of(Map.of("natural", "wood"),
+      Map.of("landuse", "forest"), Map.of("natural", "dune"),
+      Map.of("landuse", "grass"), Map.of("landuse", "meadow"), Map.of("natural", "glacier"))) {
+      assertFeatures(14, List.of(), process(polygonFeature(unread)));
+    }
     assertFeatures(10, List.of(), process(polygonFeature(Map.of(
       "landuse", "park"
     ))));

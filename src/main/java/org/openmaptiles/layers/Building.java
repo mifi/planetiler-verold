@@ -122,7 +122,11 @@ public class Building implements
   private final boolean mergeZ13Buildings;
   private final boolean hideOutlinesWithParts;
 
+  /** Imaginarium: where the buildings too big to make whole are counted (see ImaginariumBuildings#WHOLE_MOST). */
+  private final Stats stats;
+
   public Building(Translations translations, PlanetilerConfig config, Stats stats) {
+    this.stats = stats;
     this.mergeZ13Buildings = config.arguments().getBoolean(
       "building_merge_z13",
       "building: merge nearby buildings at z13",
@@ -195,7 +199,9 @@ public class Building implements
       // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away), and in
       // its home tile uncut, its parts with it (see ImaginariumBuildings).
       Imaginarium.building(feature, element.source());
-      ImaginariumBuildings.whole(feature, element.source(), element.buildingpart() != null);
+      if (!ImaginariumBuildings.whole(feature, element.source(), element.buildingpart() != null)) {
+        stats.dataError("imaginarium_building_cut");
+      }
       if (mergeZ13Buildings) {
         feature
           .setMinPixelSize(0.1)

@@ -53,6 +53,7 @@ import java.util.Set;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
+import org.openmaptiles.util.Imaginarium;
 
 /**
  * Defines the logic for generating map elements for natural land cover polygons like ice, sand, and forest in the
@@ -123,7 +124,8 @@ public class Landcover implements
   public void process(Tables.OsmLandcoverPolygon element, FeatureCollector features) {
     String subclass = element.subclass();
     String clazz = getClassFromSubclass(subclass);
-    if (clazz != null) {
+    // Imaginarium: only the parks, which the app reads; the rest of the land's cover it has from ESA WorldCover.
+    if (clazz != null && Imaginarium.LANDCOVER_KEPT.contains(subclass)) {
       features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
         .setMinPixelSizeOverrides(MIN_PIXEL_SIZE_THRESHOLDS)
         // default is 0.1, this helps reduce size of some heavy z7-10 tiles

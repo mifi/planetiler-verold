@@ -35,7 +35,8 @@ import org.locationtech.jts.operation.overlayng.OverlayNGRobust;
  * it for a building no bigger than that; a part of a bigger one (and a part with no building under it) is at home where
  * its own home point is, still whole, and its parent there or not. And what lies across what, at home in one tile, is
  * one building (a building inside another, two drawn into each other, a shelter under another's part), named by the
- * biggest outline in it: the rest are its parts, and name it. Nothing is ever cut.
+ * biggest outline in it: the rest are its parts, and name it. Nothing is cut but a building too big to be made whole
+ * (see {@link #WHOLE_MOST}), which is marked so.
  * <p>
  * A tile holding the same as the one before it is written as that one was (Planetiler's own shortcut), which holds here
  * too: what a tile keeps depends on where it is only through what is at home in it, which it holds whole, and so never
@@ -61,6 +62,19 @@ public final class ImaginariumBuildings {
   public static final double PART_REACH = 128;
   /** How far past its edge a tile holds what is elsewhere, z14 pixels: OpenMapTiles' building buffer. */
   public static final double MARGIN = 4;
+  /**
+   * The biggest building made whole, z14 pixels (its box's longer side): 16 tiles, some 19 km in Norway. One bigger is
+   * an outline drawn wrong more likely than a building, and whole it would ride into every tile of its buffer, some
+   * 1,000 of them, while the features are sorted: it is cut instead, as OpenMapTiles cuts every building (see
+   * {@link #CUT}).
+   */
+  public static final double WHOLE_MOST = 16 * 256;
+  /**
+   * On a building cut at each tile's margin, as OpenMapTiles has it, in every tile it reaches: one too big to make
+   * whole (see {@link #WHOLE_MOST}), or one whose geometry would not say where its home is. The app builds of it what
+   * is on each tile's own ground, as it does a building of tiles that cut them all.
+   */
+  public static final String CUT = "cut";
 
   /**
    * Where a building's home point is, in z14 pixels over the world, and how big it is (its box's longer side).
@@ -77,24 +91,29 @@ public final class ImaginariumBuildings {
 
   /**
    * A building or a part made whole: its buffer as big as it is (a part's at least PART_REACH), and its home point and
-   * size noted for the tiles to sort out (see {@link #homed}).
+   * size noted for the tiles to sort out (see {@link #homed}); or, where it cannot be (see {@link #CUT}), marked cut.
+   * Whether it was made whole.
    */
-  public static void whole(FeatureCollector.Feature feature, SourceFeature source, boolean part) {
+  public static boolean whole(FeatureCollector.Feature feature, SourceFeature source, boolean part) {
     try {
       Geometry world = source.worldGeometry();
       Envelope box = world.getEnvelopeInternal();
       double size = Math.max(box.getWidth(), box.getHeight()) * WORLD;
       Coordinate home = middleOf(world);
-      if (home == null) {
-        return;
+      if (home == null || size > WHOLE_MOST) {
+        feature.setAttrWithMinzoom(CUT, true, Imaginarium.NEAR_ZOOM);
+        return false;
       }
       feature
         .setBufferPixels(Math.max(part ? PART_REACH : MARGIN, Math.ceil(size) + 1))
         .setAttrWithMinzoom(HOME_X, home.getX() * WORLD, Imaginarium.NEAR_ZOOM)
         .setAttrWithMinzoom(HOME_Y, home.getY() * WORLD, Imaginarium.NEAR_ZOOM)
         .setAttrWithMinzoom(SIZE, size, Imaginarium.NEAR_ZOOM);
+      return true;
     } catch (GeometryException e) {
       // Left as OpenMapTiles has it: cut at the margin, in every tile it reaches (see `homed`).
+      feature.setAttrWithMinzoom(CUT, true, Imaginarium.NEAR_ZOOM);
+      return false;
     }
   }
 

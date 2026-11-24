@@ -197,13 +197,12 @@ class ImaginariumTest extends AbstractLayerTest {
 
   @Test
   void testPointHelipad() {
-    // From the far zoom on, its id at the near zoom.
+    // From the far zoom on.
     assertFeatures(14, List.of(Map.of(
       "_layer", "aeroway",
       "_type", "point",
       "_minzoom", 12,
-      "class", "helipad",
-      "_osm_id", 0L
+      "class", "helipad"
     )), process(pointFeature(Map.of(
       "aeroway", "helipad"
     ))));
@@ -417,16 +416,115 @@ class ImaginariumTest extends AbstractLayerTest {
 
   @Test
   void testBuildingBufferAsWideAsItIs() {
-    var made = process(polygonFeature(Map.of("building", "yes"))).iterator().next();
-    // The test's polygon is the whole world: 256 × 2^14 pixels at z14, and one more.
-    assertEquals(4194306d, made.getBufferPixelsAtZoom(14));
+    // A building some 419 pixels across at z14 (a ten-thousandth of the world): a buffer of that, and one more.
+    var made = process(polygonFeatureWithArea(1e-8, Map.of("building", "yes"))).iterator().next();
+    assertEquals(421d, made.getBufferPixelsAtZoom(14));
+    assertNull(made.getAttrsAtZoom(14).get(ImaginariumBuildings.CUT));
   }
 
   @Test
-  void testIdsTakenOffAsTilesAreWritten() {
-    var road = new VectorTile.Feature("transportation", 52, VectorTile.encodeGeometry(rectangle(0, 1)),
-      new HashMap<>(Map.of("class", "minor", "_osm_id", 5L)), 0);
-    assertEquals(Map.of("class", "minor"), Imaginarium.unmarked(List.of(road)).getFirst().tags());
+  void testBuildingTooBigToMakeWholeIsCut() {
+    // The test's polygon is the whole world, far over 16 tiles: cut at OpenMapTiles' margin, and marked so.
+    var made = process(polygonFeature(Map.of("building", "yes"))).iterator().next();
+    assertEquals(4d, made.getBufferPixelsAtZoom(14));
+    assertEquals(true, made.getAttrsAtZoom(14).get(ImaginariumBuildings.CUT));
+    assertNull(made.getAttrsAtZoom(14).get("_home_x"));
+    // And the tiles keep it as it is, in every tile it reaches, neither at home nor elsewhere.
+    var cut = new VectorTile.Feature("building", 52, VectorTile.encodeGeometry(rectangle(-4, 260)),
+      new HashMap<>(Map.of("building", "yes", ImaginariumBuildings.CUT, true)), 0);
+    try {
+      assertEquals(List.of(cut), homed(3, 3, cut));
+    } catch (GeometryException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  /** Tags from keys and values in turn. */
+  private static Map<String, Object> tags(Object... pairs) {
+    var tags = new HashMap<String, Object>();
+    for (int at = 0; at + 1 < pairs.length; at += 2) {
+      tags.put((String) pairs[at], pairs[at + 1]);
+    }
+    return tags;
+  }
+
+  private static VectorTile.Feature feature(String layer, long id, org.locationtech.jts.geom.Geometry geometry,
+    Map<String, Object> tags) {
+    return new VectorTile.Feature(layer, id, VectorTile.encodeGeometry(geometry), new HashMap<>(tags), 0);
+  }
+
+  @Test
+  void testWrittenWithoutWhatNothingReads() {
+    var line = rectangle(0, 1);
+    var point = com.onthegomap.planetiler.TestUtils.newPoint(1, 1);
+    // A way keeps its id (a tunnel's way, which the tunnel index names) and the fields read or to be read.
+    var road = feature("transportation", 52, line, tags("class", "minor", "_osm_id", 5L, "access", "no",
+      "bicycle", "yes", "foot", "yes", "horse", "no", "mtb_scale", "1", "official", 1, "ramp", 1, "toll", 1,
+      "indoor", 1, "level", 1L, "sidewalk", "both", "lit", "yes", "maxspeed", "50", "maxheight", "4",
+      "turn:lanes", "left|through", "surface:osm", "asphalt", "service:osm", "driveway"));
+    assertEquals(List.of(feature("transportation", 52, line, tags("class", "minor", "sidewalk", "both", "lit",
+      "yes", "maxspeed", "50", "maxheight", "4", "turn:lanes", "left|through", "surface:osm", "asphalt",
+      "service:osm", "driveway"))), Imaginarium.trimmed("transportation", List.of(road)));
+    // A building keeps its id; an entrance, a point in its layer, none.
+    var building = feature("building", 52, line, Map.of("building", "yes", "_osm_id", 5L));
+    var entrance = feature("building", 51, point, Map.of("entrance", "main", "_osm_id", 5L));
+    assertEquals(List.of(feature("building", 52, line, Map.of("building", "yes")),
+      feature("building", 0, point, Map.of("entrance", "main"))),
+      Imaginarium.trimmed("building", List.of(building, entrance)));
+    // A poi without its id, its rank, indoor and names, but a fuel station's name (a charging point's too).
+    var cafe = feature("poi", 51, point, Map.of("class", "cafe", "subclass", "cafe", "name", "Kaffe", "name:en",
+      "Coffee", "name_en", "Coffee", "name_int", "Kaffe", "name:latin", "Kaffe", "rank", 3, "indoor", 1, "level", 2L));
+    var fuel = feature("poi", 51, point, Map.of("class", "fuel", "subclass", "fuel", "name", "Circle K Majorstuen",
+      "name:en", "Circle K", "rank", 1));
+    assertEquals(List.of(feature("poi", 0, point, Map.of("class", "cafe", "subclass", "cafe", "level", 2L)),
+      feature("poi", 0, point, Map.of("class", "fuel", "subclass", "fuel", "name", "Circle K Majorstuen"))),
+      Imaginarium.trimmed("poi", List.of(cafe, fuel)));
+    // A house number's point alone; water without its id; a stream without its names; the rest without their ids.
+    assertEquals(List.of(feature("housenumber", 0, point, Map.of())),
+      Imaginarium.trimmed("housenumber", List.of(feature("housenumber", 51, point, Map.of("housenumber", "7")))));
+    assertEquals(List.of(feature("water", 0, line, Map.of("class", "lake"))),
+      Imaginarium.trimmed("water", List.of(feature("water", 52, line, Map.of("class", "lake", "id", 5L)))));
+    assertEquals(List.of(feature("waterway", 0, line, Map.of("class", "stream"))),
+      Imaginarium.trimmed("waterway", List.of(feature("waterway", 52, line, Map.of("class", "stream", "name",
+        "Akerselva", "name:en", "Aker river", "name_de", "Aker")))));
+    for (var layer : List.of("landcover", "landuse", "aeroway")) {
+      assertEquals(List.of(feature(layer, 0, line, Map.of("class", "x", "name", "y"))),
+        Imaginarium.trimmed(layer, List.of(feature(layer, 52, line, Map.of("class", "x", "name", "y")))));
+    }
+    // What has nothing to take off is the very feature.
+    var bare = feature("transportation", 52, line, Map.of("class", "minor"));
+    assertEquals(bare, Imaginarium.trimmed("transportation", List.of(bare)).getFirst());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "highway, street_lamp",
+    "amenity, bench",
+    "leisure, picnic_table",
+    "natural, tree",
+  })
+  void testFurniture(String key, String value) {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "poi",
+      "_type", "point",
+      "_minzoom", 14,
+      "class", value,
+      "subclass", value
+    )), process(pointFeature(Map.of(key, value))));
+    // Only where mapped as a point: a bench drawn as a line is none.
+    assertFeatures(14, List.of(), process(lineFeature(Map.of(key, value))));
+  }
+
+  @Test
+  void testTreeKind() {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "poi",
+      "class", "tree",
+      "leaf_type", "broadleaved",
+      "genus", "Betula",
+      "height", "<null>"
+    )), process(pointFeature(Map.of("natural", "tree", "leaf_type", "broadleaved", "genus", "Betula", "height",
+      "12"))));
   }
 
   @Test

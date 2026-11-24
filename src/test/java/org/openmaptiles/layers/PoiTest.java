@@ -309,7 +309,7 @@ class PoiTest extends AbstractLayerTest {
       layerName,
       Map.of("rank", 1),
       1
-    )), profile.postProcessLayerFeatures(layerName, 14, List.of(pointFeature(
+    )), profile.postProcessLayerFeaturesUnkept(layerName, 14, List.of(pointFeature(
       layerName,
       Map.of(),
       1
@@ -329,7 +329,7 @@ class PoiTest extends AbstractLayerTest {
         Map.of("rank", 1, "name", "c"),
         2
       )
-    ), profile.postProcessLayerFeatures(layerName, 14, List.of(
+    ), profile.postProcessLayerFeaturesUnkept(layerName, 14, List.of(
       pointFeature(
         layerName,
         Map.of("name", "a"),

@@ -40,7 +40,6 @@ import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Translations;
-import java.util.List;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
@@ -93,11 +92,10 @@ public class Aeroway implements
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {
     if (feature.isPoint() && feature.hasTag("aeroway", "helipad")) {
-      var helipad = features.point(LAYER_NAME)
+      features.point(LAYER_NAME)
         .setMinZoom(Imaginarium.FAR_ZOOM)
         .setAttr(Fields.CLASS, "helipad")
         .setAttr(Fields.REF, feature.getString("ref"));
-      Imaginarium.tagged(helipad, feature, List.of());
     }
   }
 }
