@@ -259,27 +259,6 @@ public class OpenMapTilesProfile extends ForwardingProfile {
     return super.postProcessLayerFeatures(layer, zoom, items);
   }
 
-  /**
-   * Imaginarium: only the multipolygons a layer makes something of are built, which saves storing the member ways of
-   * the rest in pass 2. A multipolygon reaches the layers only through the imposm3 tables (the {@link OsmAllProcessor}s
-   * read points and lines), so it is wanted when its tags match a table a layer handles, the landcover table only for
-   * the subclasses its layer keeps ({@link Imaginarium#LANDCOVER_KEPT}).
-   */
-  @Override
-  public boolean caresAboutMultipolygon(OsmElement.Relation relation) {
-    var polygon = SimpleFeature.create(EMPTY_POLYGON, relation.tags(), OSM_SOURCE, null, relation.id());
-    for (var match : getTableMatches(polygon)) {
-      RowDispatch rowDispatch = match.match();
-      if (!rowDispatch.handlers().isEmpty() &&
-        (!(rowDispatch.constructor().create(polygon,
-          match.keys().getFirst())instanceof Tables.OsmLandcoverPolygon cover) ||
-          Imaginarium.LANDCOVER_KEPT.contains(cover.subclass()))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @Override
   public Map<String, List<String>> dependsOnLayer() {
     return Map.of("transportation_name", List.of("transportation"));
