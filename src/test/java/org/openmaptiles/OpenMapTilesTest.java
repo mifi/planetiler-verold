@@ -73,7 +73,10 @@ class OpenMapTilesTest {
       "tmpdir", tmpDir.resolve("tmp"),
 
       // Override output location
-      "mbtiles", dbPath
+      "mbtiles", dbPath,
+
+      // Imaginarium: the tunnel index it names
+      "imaginarium_tunnels", "tunnels.pmtiles"
     ));
 
     mbtiles = Mbtiles.newReadOnlyDatabase(dbPath);
@@ -97,6 +100,8 @@ class OpenMapTilesTest {
     assertContains("openmaptiles.org", metadata.get("description"));
     // Imaginarium: the archive says its buildings are whole.
     assertEquals("whole", metadata.get("imaginarium:buildings"));
+    // and which tunnel index is its own.
+    assertEquals("tunnels.pmtiles", metadata.get("imaginarium:tunnels"));
     assertContains("openmaptiles.org", metadata.get("attribution"));
     assertContains("www.openstreetmap.org/copyright", metadata.get("attribution"));
   }

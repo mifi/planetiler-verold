@@ -92,6 +92,12 @@ public class OpenMapTilesProfile extends ForwardingProfile {
   private final ImaginariumWays imaginariumWays;
   /** Imaginarium: where the parts left away from their buildings are counted (see {@link ImaginariumBuildings}). */
   private final Stats stats;
+  /**
+   * Imaginarium: the archive of the tunnel index built from this run's ways, by its path from this archive's
+   * (`--imaginarium-tunnels`, "tunnels.pmtiles" say), said in the metadata so a reader of these tiles reads that index
+   * and no other (the app's docs/own-tiles.md); blank for none.
+   */
+  private final String imaginariumTunnels;
 
   public OpenMapTilesProfile(Planetiler runner) {
     this(runner.translations(), runner.config(), runner.stats());
@@ -101,6 +107,8 @@ public class OpenMapTilesProfile extends ForwardingProfile {
     super(config);
     this.stats = stats;
     imaginariumWays = ImaginariumWays.from(config);
+    imaginariumTunnels = config.arguments().getString("imaginarium_tunnels",
+      "the tunnel index built from this run's ways, by its path from the output archive's, for the metadata", "");
 
     // register release/finish/feature postprocessor/osm relationship handler methods...
     List<Handler> layers = new ArrayList<>();
@@ -230,10 +238,16 @@ public class OpenMapTilesProfile extends ForwardingProfile {
     return processed;
   }
 
-  /** The archive says its buildings are whole (see {@link ImaginariumBuildings}). */
+  /** The archive's metadata field naming its tunnel index (see {@code imaginariumTunnels}). */
+  public static final String TUNNELS_METADATA_KEY = "imaginarium:tunnels";
+
+  /** The archive says its buildings are whole (see {@link ImaginariumBuildings}), and which tunnel index is its own. */
   @Override
   public Map<String, String> extraArchiveMetadata() {
-    return Map.of(ImaginariumBuildings.METADATA_KEY, ImaginariumBuildings.METADATA_VALUE);
+    return imaginariumTunnels.isBlank() ?
+      Map.of(ImaginariumBuildings.METADATA_KEY, ImaginariumBuildings.METADATA_VALUE) :
+      Map.of(ImaginariumBuildings.METADATA_KEY, ImaginariumBuildings.METADATA_VALUE, TUNNELS_METADATA_KEY,
+        imaginariumTunnels);
   }
 
   /**
