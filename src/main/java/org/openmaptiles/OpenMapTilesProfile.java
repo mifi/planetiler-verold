@@ -12,6 +12,7 @@ import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.expression.MultiExpression;
 import com.onthegomap.planetiler.geo.GeometryException;
+import com.onthegomap.planetiler.geo.TileCoord;
 import com.onthegomap.planetiler.reader.SimpleFeature;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
@@ -28,6 +29,7 @@ import org.openmaptiles.generated.Tables;
 import org.openmaptiles.layers.Transportation;
 import org.openmaptiles.layers.TransportationName;
 import org.openmaptiles.util.Imaginarium;
+import org.openmaptiles.util.ImaginariumBuildings;
 import org.openmaptiles.util.ImaginariumWays;
 
 /**
@@ -88,6 +90,8 @@ public class OpenMapTilesProfile extends ForwardingProfile {
    * Imaginarium: the tunnel, bridge and covered ways written beside the tiles, or null (see {@link ImaginariumWays}).
    */
   private final ImaginariumWays imaginariumWays;
+  /** Imaginarium: where the parts left away from their buildings are counted (see {@link ImaginariumBuildings}). */
+  private final Stats stats;
 
   public OpenMapTilesProfile(Planetiler runner) {
     this(runner.translations(), runner.config(), runner.stats());
@@ -95,6 +99,7 @@ public class OpenMapTilesProfile extends ForwardingProfile {
 
   public OpenMapTilesProfile(Translations translations, PlanetilerConfig config, Stats stats) {
     super(config);
+    this.stats = stats;
     imaginariumWays = ImaginariumWays.from(config);
 
     // register release/finish/feature postprocessor/osm relationship handler methods...
@@ -210,7 +215,25 @@ public class OpenMapTilesProfile extends ForwardingProfile {
   public List<VectorTile.Feature> postProcessLayerFeatures(String layer, int zoom, List<VectorTile.Feature> items)
     throws GeometryException {
     var kept = Imaginarium.kept(layer, zoom, items);
-    return kept.isEmpty() ? kept : super.postProcessLayerFeatures(layer, zoom, kept);
+    return kept.isEmpty() ? kept : Imaginarium.unmarked(super.postProcessLayerFeatures(layer, zoom, kept));
+  }
+
+  /** And each building whole in the one tile it is at home in (see {@link ImaginariumBuildings#homed}). */
+  @Override
+  public Map<String, List<VectorTile.Feature>> postProcessTileFeatures(TileCoord tile,
+    Map<String, List<VectorTile.Feature>> layers) throws GeometryException {
+    var processed = super.postProcessTileFeatures(tile, layers);
+    var buildings = processed.get(ImaginariumBuildings.LAYER);
+    if (buildings != null && !buildings.isEmpty()) {
+      processed.put(ImaginariumBuildings.LAYER, ImaginariumBuildings.homed(tile, buildings, stats));
+    }
+    return processed;
+  }
+
+  /** The archive says its buildings are whole (see {@link ImaginariumBuildings}). */
+  @Override
+  public Map<String, String> extraArchiveMetadata() {
+    return Map.of(ImaginariumBuildings.METADATA_KEY, ImaginariumBuildings.METADATA_VALUE);
   }
 
   /**

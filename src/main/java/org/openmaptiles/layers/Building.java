@@ -69,6 +69,7 @@ import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
 import org.openmaptiles.util.Imaginarium;
+import org.openmaptiles.util.ImaginariumBuildings;
 
 /**
  * Defines the logic for generating map elements for buildings in the {@code building} layer from source features.
@@ -191,8 +192,10 @@ public class Building implements
         .setAttrWithMinzoom(Fields.HIDE_3D, hide3d, 14)
         .setAttrWithMinzoom(TEMP_PART, hideOutlinesWithParts && element.buildingpart() != null ? true : null, 14)
         .setSortKey(renderHeight);
-      // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away).
+      // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away), and in
+      // its home tile uncut, its parts with it (see ImaginariumBuildings).
       Imaginarium.building(feature, element.source());
+      ImaginariumBuildings.whole(feature, element.source(), element.buildingpart() != null);
       if (mergeZ13Buildings) {
         feature
           .setMinPixelSize(0.1)

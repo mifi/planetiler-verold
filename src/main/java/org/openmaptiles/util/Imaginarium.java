@@ -27,8 +27,13 @@ public final class Imaginarium {
   /** The far zoom: water, runways and helipads, and the tunnel and bridge lines the tunnel index follows. */
   public static final int FAR_ZOOM = 12;
 
-  /** The OpenStreetMap id of what a feature was made of: a node's or a way's, a relation's negated. */
-  public static final String OSM_ID = "osm_id";
+  /**
+   * The OpenStreetMap id of what a feature was made of, a node's or a way's, a relation's negated: carried while the
+   * features are made and merged, so no two ways merge into one, and taken off as each tile is written (see
+   * {@link #unmarked}). The tile says it as each feature's own id instead, which Planetiler writes as the id × 10 + 1,
+   * 2 or 3 for a node, a way or a relation.
+   */
+  public static final String OSM_ID = "_osm_id";
 
   /** The layers the far zoom keeps (of transportation only the tunnels and bridges). */
   private static final Set<String> FAR_LAYERS = Set.of("water", "aeroway", "transportation");
@@ -68,6 +73,16 @@ public final class Imaginarium {
   public static long osmId(SourceFeature source) {
     return source instanceof OsmSourceFeature<?> osm && osm.originalElement() instanceof OsmElement.Relation ?
       -source.id() : source.id();
+  }
+
+  /** Takes the ids off what a tile's layer is written with (see OSM_ID): the features' own ids say them. */
+  public static List<VectorTile.Feature> unmarked(List<VectorTile.Feature> items) {
+    for (var item : items) {
+      if (item.tags().containsKey(OSM_ID)) {
+        item.tags().remove(OSM_ID);
+      }
+    }
+    return items;
   }
 
   /** Puts the id and these tags, as tagged, on a feature at the near zoom. */

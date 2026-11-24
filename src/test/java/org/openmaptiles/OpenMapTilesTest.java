@@ -95,6 +95,8 @@ class OpenMapTilesTest {
     assertEquals("7.40921,43.72335,7.44864,43.75169", metadata.get("bounds"));
     assertEquals("7.42892,43.73752,14", metadata.get("center"));
     assertContains("openmaptiles.org", metadata.get("description"));
+    // Imaginarium: the archive says its buildings are whole.
+    assertEquals("whole", metadata.get("imaginarium:buildings"));
     assertContains("openmaptiles.org", metadata.get("attribution"));
     assertContains("www.openstreetmap.org/copyright", metadata.get("attribution"));
   }
@@ -156,7 +158,9 @@ class OpenMapTilesTest {
           continue;
         }
         var tags = feature.tags();
-        assertTrue(tags.get("osm_id") instanceof Long, feature::toString);
+        // Its id the feature's own (a way's × 10 + 2, a relation's + 3), not a field.
+        assertTrue(feature.id() % 10 == 2 || feature.id() % 10 == 3, feature::toString);
+        assertTrue(!tags.containsKey("osm_id") && !tags.containsKey("_osm_id"), feature::toString);
         assertTrue(!tags.containsKey("roof:orientation"), feature::toString);
         if (tags.containsKey("building:part")) {
           parts += 1;
@@ -175,6 +179,44 @@ class OpenMapTilesTest {
     }
     assertTrue(parts > 0, "parts");
     assertTrue(levels > 0, "levels");
+  }
+
+  @Test
+  void testBuildingsWholeInOneTile() throws IOException {
+    // Imaginarium: each building and building part in one tile only but where marked `elsewhere`, whole there (nothing
+    // of it at the edge of what the tile holds of it), and each part in the tile its building is in.
+    Map<Long, TileCoord> homes = new java.util.HashMap<>();
+    int parts = 0;
+    int elsewhere = 0;
+    for (var tile : TestUtils.getTiles(mbtiles)) {
+      if (tile.coord().z() != 14) {
+        continue;
+      }
+      var features = VectorTile.decode(gunzip(tile.bytes()));
+      Set<Long> here = new java.util.HashSet<>();
+      for (var feature : features) {
+        if ("building".equals(feature.layer()) && !feature.tags().containsKey("elsewhere")) {
+          here.add(feature.id());
+        }
+      }
+      for (var feature : features) {
+        if (!"building".equals(feature.layer()) || feature.tags().containsKey("entrance")) {
+          continue;
+        }
+        if (feature.tags().containsKey("elsewhere")) {
+          elsewhere += 1;
+          continue;
+        }
+        var before = homes.put(feature.id(), tile.coord());
+        assertTrue(before == null, () -> feature + " in " + before + " and " + tile.coord());
+        if (feature.tags().get("parent")instanceof Long parent) {
+          parts += 1;
+          assertTrue(here.contains(parent), feature::toString);
+        }
+      }
+    }
+    assertTrue(parts > 0, "parts");
+    assertTrue(elsewhere > 0, "elsewhere");
   }
 
   @Test
@@ -197,7 +239,8 @@ class OpenMapTilesTest {
   @Test
   void testContainsBuildings() {
     assertFeatureNear(mbtiles, "building", Map.of(), 7.41919, 43.73401, 14, 14);
-    assertNumFeatures("building", Map.of(), 14, 1316, Polygon.class);
+    // Imaginarium: each once where it is at home, and again marked `elsewhere` where it reaches another tile's margin.
+    assertNumFeatures("building", Map.of(), 14, 1314, Polygon.class);
     assertNumFeatures("building", Map.of(), 13, 0, Polygon.class);
   }
 

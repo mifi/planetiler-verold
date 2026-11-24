@@ -39,7 +39,9 @@ class BuildingTest extends AbstractLayerTest {
       "_type", "polygon",
       "_minzoom", 14,
       "_maxzoom", 14,
-      "_buffer", 4d,
+      // Imaginarium: as wide a buffer as the building is (this one the whole world, plus a pixel), so the tile it is at
+      // home in holds all of it (see ImaginariumBuildings).
+      "_buffer", 4194306d,
       // Imaginarium: nothing merges at z13 (building_merge_z13 is off), so no smaller minimum for it.
       "_minpixelsize", 2d
     )), process(polygonFeature(Map.of(
