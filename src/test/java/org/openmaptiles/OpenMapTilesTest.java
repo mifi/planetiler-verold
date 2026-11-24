@@ -239,8 +239,9 @@ class OpenMapTilesTest {
   @Test
   void testContainsBuildings() {
     assertFeatureNear(mbtiles, "building", Map.of(), 7.41919, 43.73401, 14, 14);
-    // Imaginarium: each once where it is at home, and again marked `elsewhere` where it reaches another tile's margin.
-    assertNumFeatures("building", Map.of(), 14, 1314, Polygon.class);
+    // Imaginarium: each once where it is at home, and again marked `elsewhere` where it reaches another tile's margin or
+    // comes within it of what that tile builds.
+    assertNumFeatures("building", Map.of(), 14, 1325, Polygon.class);
     assertNumFeatures("building", Map.of(), 13, 0, Polygon.class);
   }
 

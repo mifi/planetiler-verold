@@ -229,9 +229,6 @@ class ImaginariumTest extends AbstractLayerTest {
       Math.max(x1 - x0, y1 - y0), "render_height", 5));
     if (part) {
       tags.put("building:part", "yes");
-      // (A point inside it, which its building is found by: here its home point.)
-      tags.put("_inside_x", homeX);
-      tags.put("_inside_y", homeY);
     } else {
       tags.put("building", "yes");
     }
@@ -283,19 +280,113 @@ class ImaginariumTest extends AbstractLayerTest {
   }
 
   @Test
-  void testPartOfTheSmallestBuildingRoundIt() throws GeometryException {
+  void testOutlinesAcrossOneAnotherAreOneBuilding() throws GeometryException {
+    // An outline inside another, one lying across that, and a part inside the inner one: all one building, named by the
+    // biggest; one beside them, its wall a hand's breadth into theirs, its own.
     var big = building(12, 0, 0, 100, 100, 50, 10, false);
-    var small = building(22, 40, 40, 80, 80, 60, 60, false);
+    var inner = building(22, 40, 40, 80, 80, 60, 60, false);
+    var across = building(42, 90, 10, 130, 30, 110, 20, false);
     var part = building(32, 50, 50, 70, 70, 60, 62, true);
-    assertEquals(22L, byId(homed(0, 0, big, small, part)).get(32L).get("parent"));
+    var beside = building(52, 99.95, 50, 140, 90, 120, 70, false);
+    var here = byId(homed(0, 0, big, inner, across, part, beside));
+    assertNull(here.get(12L).get("parent"));
+    assertEquals(12L, here.get(22L).get("parent"));
+    assertEquals(12L, here.get(42L).get("parent"));
+    assertEquals(12L, here.get(32L).get("parent"));
+    assertNull(here.get(52L).get("parent"));
+  }
+
+  @Test
+  void testPartsUnderNoOutlineAreOneBuilding() throws GeometryException {
+    // Parts lying across one another under no outline: one building, named by the biggest.
+    var block = building(32, 10, 10, 60, 60, 35, 35, true);
+    var tower = building(42, 40, 40, 70, 70, 55, 55, true);
+    var here = byId(homed(0, 0, block, tower));
+    assertNull(here.get(32L).get("parent"));
+    assertEquals(32L, here.get(42L).get("parent"));
+  }
+
+  @Test
+  void testThinPartInItsBuilding() throws GeometryException {
+    // A part thinner than a sliver (a pillar) inside its building is its.
+    var outline = building(12, 10, 10, 60, 60, 35, 35, false);
+    var pillar = building(32, 20, 20, 20.05, 30, 20, 25, true);
+    assertEquals(12L, byId(homed(0, 0, outline, pillar)).get(32L).get("parent"));
+  }
+
+  @Test
+  void testOutlineAcrossAnothersPartIsOfItsBuilding() throws GeometryException {
+    // A part reaching out of its outline, and a shelter under it: all one building.
+    var outline = building(12, 0, 0, 40, 40, 20, 20, false);
+    var part = building(32, 30, 0, 80, 40, 55, 20, true);
+    var shelter = building(22, 60, 10, 75, 30, 67, 20, false);
+    var here = byId(homed(0, 0, outline, part, shelter));
+    assertEquals(12L, here.get(32L).get("parent"));
+    assertEquals(12L, here.get(22L).get("parent"));
+  }
+
+  @Test
+  void testOutlineInACourtyard() throws GeometryException {
+    // The app fills a courtyard in: what stands in it is in the building round it.
+    var factory = new org.locationtech.jts.geom.GeometryFactory();
+    var round = factory.createPolygon(rectangle(0, 0, 100, 100).getExteriorRing(),
+      new org.locationtech.jts.geom.LinearRing[]{rectangle(30, 30, 70, 70).getExteriorRing().reverse()});
+    var outline = new VectorTile.Feature("building", 12, VectorTile.encodeGeometry(round),
+      new HashMap<>(Map.of("_home_x", 50d, "_home_y", 50d, "_size", 100d, "building", "yes")), 0);
+    var inside = building(22, 40, 40, 60, 60, 50, 50, false);
+    assertEquals(12L, byId(homed(0, 0, outline, inside)).get(22L).get("parent"));
+  }
+
+  @Test
+  void testOutlinesAtHomeInTwoTilesStayTwo() throws GeometryException {
+    // Lying across each other over a tile's edge, each at home on its own side: each its own building, built by its own
+    // tile (what is at home in another tile is not this one's to name).
+    var west = building(12, 200, 10, 260, 60, 230, 30, false);
+    var east = building(22, 250, 10, 300, 60, 270, 30, false);
+    var here = byId(homed(0, 0, west, east));
+    assertNull(here.get(12L).get("parent"));
+    assertEquals(true, here.get(22L).get("elsewhere"));
+    assertNull(here.get(22L).get("parent"));
+  }
+
+  @Test
+  void testPartOfTheOutlineItSharesMost() throws GeometryException {
+    // A big part whose middle is in a small building it overlaps but which lies mostly in a big one: the big one's. And
+    // a part on a small building's corner that lies mostly outside every outline: still that building's (the app
+    // builds the building as all of both, see its own-tiles.md).
+    var small = building(12, 10, 10, 30, 30, 20, 20, false);
+    var big = building(22, 60, 0, 200, 100, 130, 50, false);
+    var part = building(32, 25, 20, 150, 80, 40, 40, true);
+    var corner = building(42, 25, 25, 45, 45, 35, 35, true);
+    var here = byId(homed(0, 0, small, big, part, corner));
+    assertEquals(22L, here.get(32L).get("parent"));
+    assertEquals(12L, here.get(42L).get("parent"));
+  }
+
+  @Test
+  void testPartOfABuildingOfSeveralRings() throws GeometryException {
+    // A multipolygon of two rings, a part in each: both name it.
+    var rings =
+      new org.locationtech.jts.geom.GeometryFactory().createMultiPolygon(new org.locationtech.jts.geom.Polygon[]{
+        rectangle(10, 10, 40, 40), rectangle(60, 10, 90, 40)});
+    var outline = new VectorTile.Feature("building", 13, VectorTile.encodeGeometry(rings),
+      new HashMap<>(Map.of("_home_x", 50d, "_home_y", 25d, "_size", 80d, "building", "yes")), 0);
+    var one = building(32, 15, 15, 25, 25, 20, 20, true);
+    var two = building(42, 70, 20, 80, 30, 75, 25, true);
+    var here = byId(homed(0, 0, outline, one, two));
+    assertEquals(13L, here.get(32L).get("parent"));
+    assertEquals(13L, here.get(42L).get("parent"));
   }
 
   @Test
   void testPartWithoutBuildingIsItsOwn() throws GeometryException {
+    // At home in 0/0 with no building, its own there; and in 1/0, which it reaches, held for its neighbours, with no
+    // parent: elsewhere, as a building is. A building it only touches is not its.
     var part = building(32, 200, 20, 300, 50, 250, 35, true);
-    assertEquals(Map.of("building:part", "yes", "render_height", 5), byId(homed(0, 0, part)).get(32L));
-    assertEquals(true,
-      byId(homed(1, 0, building(32, -56, 20, 44, 50, 250, 35, true))).get(32L).get("elsewhere"));
+    var touching = building(12, 150, 20, 200.05, 50, 175, 35, false);
+    assertEquals(Map.of("building:part", "yes", "render_height", 5), byId(homed(0, 0, part, touching)).get(32L));
+    assertEquals(Map.of("building:part", "yes", "render_height", 5, "elsewhere", true),
+      byId(homed(1, 0, building(32, -56, 20, 44, 50, 250, 35, true))).get(32L));
   }
 
   @Test
