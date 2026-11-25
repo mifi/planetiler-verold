@@ -50,6 +50,7 @@ import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmReader;
 import com.onthegomap.planetiler.reader.osm.OsmRelationInfo;
+import com.onthegomap.planetiler.reader.osm.SplitWay;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Translations;
 import com.onthegomap.planetiler.util.ZoomFunction;
@@ -157,7 +158,8 @@ public class Waterway implements
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {
     List<OsmReader.RelationMember<WaterwayRelation>> waterways = feature.relationInfo(WaterwayRelation.class);
-    if (waterways != null && !waterways.isEmpty() && feature.canBeLine()) {
+    // Imaginarium: a transportation way cut at its junctions comes whole and then in pieces; the whole is counted.
+    if (waterways != null && !waterways.isEmpty() && feature.canBeLine() && !(feature instanceof SplitWay)) {
       for (var waterway : waterways) {
         String role = waterway.role();
         if (Utils.nullOrEmpty(role) || "main_stream".equals(role)) {

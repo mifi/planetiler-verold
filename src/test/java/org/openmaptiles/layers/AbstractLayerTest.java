@@ -278,7 +278,7 @@ public abstract class AbstractLayerTest {
     );
     var line2 = new VectorTile.Feature(
       layer,
-      2, // (another way: one way's own pieces are joined, see Imaginarium.piecesJoined)
+      1,
       VectorTile.encodeGeometry(newLineString(length / 2, 0, length, 0)),
       new HashMap<>(attrs),
       0

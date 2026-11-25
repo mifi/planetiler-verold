@@ -54,6 +54,7 @@ import com.onthegomap.planetiler.reader.SimpleFeature;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmRelationInfo;
+import com.onthegomap.planetiler.reader.osm.SplitWay;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Format;
 import com.onthegomap.planetiler.util.MemoryEstimator;
@@ -242,7 +243,8 @@ public class Boundary implements
 
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {
-    if (!feature.canBeLine()) {
+    // Imaginarium: a transportation way cut at its junctions comes whole and then in pieces; the whole is the boundary's.
+    if (!feature.canBeLine() || feature instanceof SplitWay) {
       return;
     }
     var relationInfos = feature.relationInfo(BoundaryRelation.class);
