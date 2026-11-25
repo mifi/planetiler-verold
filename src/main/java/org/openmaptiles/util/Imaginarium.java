@@ -173,8 +173,7 @@ public final class Imaginarium {
     "poi", Set.of("rank", "indoor"),
     "housenumber", Set.of("housenumber"),
     "water", Set.of("id"),
-    "transportation", Set.of("access", "bicycle", "foot", "horse", "mtb_scale", "official", "ramp", "toll", "indoor",
-      "level"));
+    "transportation", Set.of("access", "bicycle", "foot", "horse", "mtb_scale", "official", "ramp", "toll", "indoor"));
 
   /** The poi class whose `name` is read: a fuel or charging station's, for its brand (the app's forecourts.ts). */
   private static final String NAMED_POI = "fuel";

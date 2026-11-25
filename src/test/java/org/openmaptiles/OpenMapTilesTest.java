@@ -208,7 +208,7 @@ class OpenMapTilesTest {
           }
           case "water" -> assertTrue(!tags.containsKey("id"), feature::toString);
           case "waterway" -> assertTrue(!tags.containsKey("name"), feature::toString);
-          case "transportation" -> assertTrue(!tags.containsKey("access") && !tags.containsKey("level"),
+          case "transportation" -> assertTrue(!tags.containsKey("access") && !tags.containsKey("indoor"),
             feature::toString);
           default -> {
           }
