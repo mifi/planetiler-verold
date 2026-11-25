@@ -147,6 +147,11 @@ public class Building implements
     return null;
   }
 
+  /** Imaginarium: a height or a count as tagged, or none where it is below 0 or no finite number. */
+  private static Double measure(Double value) {
+    return value != null && Double.isFinite(value) && value >= 0 ? value : null;
+  }
+
   @Override
   public void process(Tables.OsmBuildingPolygon element, FeatureCollector features) {
     Boolean hide3d = null;
@@ -166,18 +171,20 @@ public class Building implements
       color = color.toLowerCase(Locale.ROOT);
     }
 
-    Double height = Parse.meters(coalesce(
+    // Imaginarium: a height or a count of storeys below 0, or no finite number, is none: -3000000000 m or -1e9 storeys
+    // made a render height and sort key of Integer.MIN_VALUE, out of the sort key's range.
+    Double height = measure(Parse.meters(coalesce(
       nullIfEmpty(element.height()),
       nullIfEmpty(element.buildingheight())
-    ));
+    )));
     Double minHeight = Parse.meters(coalesce(
       nullIfEmpty(element.minHeight()),
       nullIfEmpty(element.buildingminHeight())
     ));
-    Double levels = coalesce(
+    Double levels = measure(coalesce(
       parseDoubleOrNull(element.levels()),
       parseDoubleOrNull(element.buildinglevels())
-    );
+    ));
     Double minLevels = coalesce(
       parseDoubleOrNull(element.minLevel()),
       parseDoubleOrNull(element.buildingminLevel())

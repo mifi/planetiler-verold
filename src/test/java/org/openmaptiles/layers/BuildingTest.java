@@ -121,6 +121,21 @@ class BuildingTest extends AbstractLayerTest {
 
   @ParameterizedTest
   @CsvSource({
+    "building:height, -3000000000",
+    "building:height, -3",
+    "building:levels, -1e9",
+    "building:levels, -Infinity",
+    "building:levels, NaN",
+  })
+  void testHeightBelowZeroOrNoNumberIsNone(String key, String value) {
+    // Imaginarium: as untagged, its sort key in range, where -3000000000 m or -1e9 storeys made it Integer.MIN_VALUE.
+    var features = process(polygonFeature(Map.of("building", "yes", key, value)));
+    assertFeatures(14, List.of(Map.of("render_height", 5)), features);
+    Assertions.assertEquals(5, features.iterator().next().getSortKey());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
     "2, 2",
     "2m, 2",
     "2 m, 2",
