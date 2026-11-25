@@ -2,18 +2,27 @@ package org.openmaptiles.util;
 
 import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.VectorTile;
+import com.onthegomap.planetiler.expression.Expression;
+import com.onthegomap.planetiler.geo.GeoUtils;
+import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.geo.GeometryType;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmSourceFeature;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateList;
+import org.locationtech.jts.geom.LineString;
+import org.openmaptiles.generated.Tables;
 
 /**
  * What Imaginarium's tiles change of OpenMapTiles: two zooms only, the near one (z14) with everything and the far one
@@ -71,6 +80,84 @@ public final class Imaginarium {
 
   /** The tags an entrance carries, a point in the building layer. */
   public static final List<String> ENTRANCE_TAGS = List.of("entrance", "door", "level", "wheelchair");
+
+  /**
+   * The ways the transportation layer makes its lines of, by their tags alone (its tables' mappings, as pass 1 sees a
+   * way, before it has a shape): each is cut by Planetiler at every node it shares with another of them or with itself
+   * (`splitOsmWayAtIntersections`), so every junction, crossing and way's end on another's run is a point of both lines
+   * in the tiles, which simplifying would otherwise drop where the ways run straight through it. The pieces are made
+   * each as the way would be (`splitLine`, the way's own id) and joined again as each tile is written, unsimplified at
+   * the near zoom (Transportation `postProcess`), so a way is still one line, with those points kept.
+   */
+  private static final Expression TRANSPORTATION_LINES = Expression.or(
+    Tables.OsmHighwayLinestring.MAPPING, Tables.OsmRailwayLinestring.MAPPING, Tables.OsmAerialwayLinestring.MAPPING,
+    Tables.OsmShipwayLinestring.MAPPING).replace(e -> e instanceof Expression.MatchType, Expression.TRUE).simplify();
+
+  /**
+   * Whether a way is one the transportation layer makes lines of, cut at the nodes it shares (TRANSPORTATION_LINES).
+   */
+  public static boolean cutAtJunctions(OsmElement.Way way) {
+    return TRANSPORTATION_LINES.evaluate(way);
+  }
+
+  /**
+   * A tile's lines with each way's pieces (cut at its junctions, see TRANSPORTATION_LINES) joined end to start again,
+   * in the way's own direction and with the points they met at: one line a way where it runs on, as it was before it
+   * was cut, before the layer's merging (which would turn a one-way way, and drops points it need not keep).
+   */
+  public static List<VectorTile.Feature> piecesJoined(List<VectorTile.Feature> items) throws GeometryException {
+    Map<List<Object>, List<VectorTile.Feature>> byWay = new LinkedHashMap<>();
+    List<VectorTile.Feature> joined = new ArrayList<>(items.size());
+    for (var item : items) {
+      if (item.id() != VectorTile.NO_FEATURE_ID && item.geometry().geomType() == GeometryType.LINE) {
+        byWay.computeIfAbsent(List.of(item.id(), item.tags()), key -> new ArrayList<>()).add(item);
+      } else {
+        joined.add(item);
+      }
+    }
+    for (var pieces : byWay.values()) {
+      if (pieces.size() == 1) {
+        joined.add(pieces.getFirst());
+        continue;
+      }
+      List<LineString> lines = new ArrayList<>();
+      for (var piece : pieces) {
+        var geometry = piece.geometry().decode();
+        for (int at = 0; at < geometry.getNumGeometries(); at++) {
+          lines.add((LineString) geometry.getGeometryN(at));
+        }
+      }
+      joined.add(pieces.getFirst().copyWithNewGeometry(GeoUtils.combineLineStrings(chained(lines))));
+    }
+    return joined;
+  }
+
+  /** Lines joined where one ends and another starts, from those no other runs into first, then any left (a loop). */
+  private static List<LineString> chained(List<LineString> lines) {
+    Map<Coordinate, Integer> starting = new HashMap<>();
+    Set<Coordinate> ending = new HashSet<>();
+    for (int at = 0; at < lines.size(); at++) {
+      starting.putIfAbsent(lines.get(at).getCoordinateN(0), at);
+      ending.add(lines.get(at).getCoordinateN(lines.get(at).getNumPoints() - 1));
+    }
+    boolean[] taken = new boolean[lines.size()];
+    List<LineString> chains = new ArrayList<>();
+    for (boolean heads : new boolean[]{true, false}) {
+      for (int first = 0; first < lines.size(); first++) {
+        if (taken[first] || (heads && ending.contains(lines.get(first).getCoordinateN(0)))) {
+          continue;
+        }
+        taken[first] = true;
+        var points = new CoordinateList(lines.get(first).getCoordinates(), false);
+        for (Integer next; (next = starting.get(points.getLast())) != null && !taken[next];) {
+          taken[next] = true;
+          points.add(lines.get(next).getCoordinates(), false);
+        }
+        chains.add(GeoUtils.JTS_FACTORY.createLineString(points.toCoordinateArray()));
+      }
+    }
+    return chains;
+  }
 
   /** The OpenStreetMap id of a source feature (see OSM_ID). */
   public static long osmId(SourceFeature source) {

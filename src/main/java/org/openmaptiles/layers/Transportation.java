@@ -512,7 +512,7 @@ public class Transportation implements
 
       boolean expressway = element.expressway() && !"motorway".equals(highway) && !(element.isRamp() || highwayRamp);
 
-      FeatureCollector.Feature feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+      FeatureCollector.Feature feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
         // main attributes at all zoom levels (used for grouping <= z8)
         .setAttr(Fields.CLASS, coalesce(minZoomAndNewClass.classOverride, highwayClass))
         .setAttr(Fields.SUBCLASS, highwaySubclass(highwayClass, element.publicTransport(), highway))
@@ -654,7 +654,7 @@ public class Transportation implements
       } else {
         minzoom = 14;
       }
-      var feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+      var feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
         .setAttr(Fields.CLASS, clazz)
         .setAttr(Fields.SUBCLASS, railway)
         .setAttr(Fields.SERVICE, service(service))
@@ -673,7 +673,7 @@ public class Transportation implements
 
   @Override
   public void process(Tables.OsmAerialwayLinestring element, FeatureCollector features) {
-    var feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+    var feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
       .setAttr(Fields.CLASS, "aerialway")
       .setAttr(Fields.SUBCLASS, element.aerialway())
       .setAttr(Fields.SERVICE, service(element.service()))
@@ -689,7 +689,7 @@ public class Transportation implements
 
   @Override
   public void process(Tables.OsmShipwayLinestring element, FeatureCollector features) {
-    var feature = features.line(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
+    var feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
       .setAttr(Fields.CLASS, element.shipway()) // "ferry"
       // no subclass
       .setAttr(Fields.SERVICE, service(element.service()))
@@ -725,8 +725,11 @@ public class Transportation implements
   }
 
   @Override
-  public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) {
-    double tolerance = config.tolerance(zoom);
+  public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
+    // Imaginarium: the pieces of a way cut at its junctions (Imaginarium.cutAtJunctions), each simplified as it was
+    // made, are joined again, and at the near zoom not simplified again, so the points where they meet other ways stay.
+    items = Imaginarium.piecesJoined(items);
+    double tolerance = zoom >= Imaginarium.NEAR_ZOOM ? -1 : config.tolerance(zoom);
     double minLength = coalesce(MIN_LENGTH.apply(zoom), 0).doubleValue();
 
     // don't merge road segments with oneway tag

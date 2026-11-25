@@ -199,6 +199,12 @@ public class OpenMapTilesProfile extends ForwardingProfile {
     Imaginarium.slimmed(features);
   }
 
+  /** The transportation layer's ways cut where they meet (see {@link Imaginarium#cutAtJunctions}). */
+  @Override
+  public boolean splitOsmWayAtIntersections(OsmElement.Way way) {
+    return Imaginarium.cutAtJunctions(way);
+  }
+
   /** The ways as the layers want them, and the structures' nodes noted (see {@link ImaginariumWays#preprocess}). */
   @Override
   public void preprocessOsmWay(OsmElement.Way way) {

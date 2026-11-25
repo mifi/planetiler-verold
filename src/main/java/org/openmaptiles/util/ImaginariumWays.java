@@ -6,8 +6,10 @@ import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.geo.GeoUtils;
 import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.reader.SourceFeature;
+import com.onthegomap.planetiler.reader.osm.FullWay;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmSourceFeature;
+import com.onthegomap.planetiler.reader.osm.SplitWay;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -86,6 +88,29 @@ public final class ImaginariumWays {
     if (!(source instanceof OsmSourceFeature<?> osm) || !(osm.originalElement()instanceof OsmElement.Way way)) {
       return;
     }
+    // A way cut at its junctions (Imaginarium.cutAtJunctions) comes whole first, which the layers make nothing of, then
+    // in pieces, which they make the lines of: it is written whole, as its first piece's line was made.
+    if (source instanceof FullWay) {
+      whole.set(source);
+      return;
+    }
+    if (source instanceof SplitWay) {
+      var full = whole.get();
+      whole.remove();
+      if (full == null || full.id() != source.id() ||
+        !(((OsmSourceFeature<?>) full).originalElement()instanceof OsmElement.Way fullWay)) {
+        return;
+      }
+      offer(full, fullWay, features);
+      return;
+    }
+    offer(source, way, features);
+  }
+
+  /** The whole way last seen on this thread, of a way cut at its junctions, till its first piece is made. */
+  private final ThreadLocal<SourceFeature> whole = new ThreadLocal<>();
+
+  private void offer(SourceFeature source, OsmElement.Way way, FeatureCollector features) {
     FeatureCollector.Feature made = null;
     for (var feature : features) {
       if ("transportation".equals(feature.getLayer())) {

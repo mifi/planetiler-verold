@@ -1,12 +1,16 @@
 package org.openmaptiles.layers;
 
+import static com.onthegomap.planetiler.TestUtils.newLineString;
 import static com.onthegomap.planetiler.TestUtils.rectangle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.geo.TileCoord;
+import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.stats.Stats;
 import java.util.HashMap;
 import java.util.List;
@@ -533,5 +537,38 @@ class ImaginariumTest extends AbstractLayerTest {
     assertNull(Imaginarium.colourOf(null));
     assertNull(Imaginarium.numberOf(null));
     assertNull(Imaginarium.degreesOf(null));
+  }
+
+  @Test
+  void testCutAtJunctions() {
+    var nodes = new com.carrotsearch.hppc.LongArrayList();
+    nodes.add(1, 2, 3);
+    // The ways the transportation layer makes lines of, by their tags alone, are cut where they meet; nothing else.
+    for (var tags : List.<Map<String, Object>>of(Map.of("highway", "footway"), Map.of("highway", "secondary"),
+      Map.of("railway", "rail"), Map.of("aerialway", "chair_lift"), Map.of("route", "ferry"))) {
+      assertTrue(Imaginarium.cutAtJunctions(new OsmElement.Way(1, tags, nodes)), tags::toString);
+    }
+    for (var tags : List.<Map<String, Object>>of(Map.of("building", "yes"), Map.of("waterway", "stream"),
+      Map.of("railway", "platform"), Map.of())) {
+      assertFalse(Imaginarium.cutAtJunctions(new OsmElement.Way(1, tags, nodes)), tags::toString);
+    }
+  }
+
+  @Test
+  void testPiecesOfAWayJoinedWithTheirJunctions() throws GeometryException {
+    // A way cut where another meets it, its pieces running straight on: one line again, the point between kept.
+    var tags = tags("class", "minor", "_osm_id", 5L);
+    var pieces = List.of(feature("transportation", 52, newLineString(10, 10, 20, 10), tags),
+      feature("transportation", 52, newLineString(20, 10, 30, 10), tags));
+    var joined = profile.postProcessLayerFeatures("transportation", 14, pieces);
+    assertEquals(1, joined.size());
+    assertEquals(3, joined.getFirst().geometry().decode().getNumPoints());
+    // A one-way way's too, in its own direction, whatever order its pieces come in.
+    var oneway = tags("class", "minor", "oneway", 1, "_osm_id", 5L);
+    var onewayPieces = List.of(feature("transportation", 52, newLineString(20, 10, 30, 10), oneway),
+      feature("transportation", 52, newLineString(10, 10, 20, 10), oneway));
+    var onewayJoined = profile.postProcessLayerFeatures("transportation", 14, onewayPieces);
+    assertEquals(1, onewayJoined.size());
+    assertEquals(newLineString(10, 10, 20, 10, 30, 10), onewayJoined.getFirst().geometry().decode());
   }
 }
