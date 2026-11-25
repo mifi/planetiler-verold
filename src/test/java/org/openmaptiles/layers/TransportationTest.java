@@ -1865,6 +1865,17 @@ class TransportationTest extends AbstractLayerTest {
   }
 
   @Test
+  void testLevelOnEveryLine() {
+    // Imaginarium: a road up a storey in a station hall says so, as footways and steps do in OpenMapTiles.
+    assertFeatures(14, List.of(Map.of("class", "minor", "level", 1L, "_type", "line")),
+      process(lineFeature(Map.of("highway", "residential", "level", "1"))));
+    assertFeatures(14, List.of(Map.of("class", "minor", "level", "<null>", "_type", "line")),
+      process(lineFeature(Map.of("highway", "residential"))));
+    assertFeatures(14, List.of(Map.of("class", "transit", "subclass", "subway", "level", -2L, "_type", "line")),
+      process(lineFeature(Map.of("railway", "subway", "tunnel", "yes", "layer", "-2", "level", "-2"))));
+  }
+
+  @Test
   void testRail() {
     assertFeatures(8, List.of(Map.of(
       "_layer", "transportation",

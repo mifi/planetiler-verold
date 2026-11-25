@@ -544,10 +544,9 @@ public class Transportation implements
       Imaginarium.tagged(feature, element.source(), Imaginarium.ROAD_TAGS);
       Imaginarium.taggedRenamed(feature, element.source(), Imaginarium.ROAD_RENAMED);
 
+      feature.setAttr(Fields.LEVEL, level(element.source()));
       if (isFootwayOrSteps(highway)) {
-        feature
-          .setAttr(Fields.LEVEL, Parse.parseLongOrNull(element.source().getTag("level")))
-          .setAttr(Fields.INDOOR, element.indoor() ? 1 : null);
+        feature.setAttr(Fields.INDOOR, element.indoor() ? 1 : null);
       }
     }
   }
@@ -661,11 +660,20 @@ public class Transportation implements
         .setAttr(Fields.RAMP, element.isRamp() ? 1L : null)
         .setAttrWithMinzoom(Fields.BRUNNEL, brunnel(element.isBridge(), element.isTunnel(), element.isFord()), 10)
         .setAttrWithMinzoom(Fields.LAYER, nullIfLong(element.layer(), 0), 9)
+        .setAttr(Fields.LEVEL, level(element.source()))
         .setSortKey(element.zOrder())
         .setMinPixelSize(0) // merge during post-processing, then limit by size
         .setMinZoom(minzoom);
       Imaginarium.tagged(feature, element.source(), RAIL_TAGS);
     }
+  }
+
+  /**
+   * Imaginarium: the storey a line is on, OpenMapTiles' `level` (a whole number, as it has it on footways and steps),
+   * on every line whose way has one: which storey a station's tracks or a road through a hall are on, beside `layer`.
+   */
+  private static Long level(SourceFeature source) {
+    return Parse.parseLongOrNull(source.getTag("level"));
   }
 
   /** Imaginarium: what a railway carries as tagged, beside its id. */
@@ -681,6 +689,7 @@ public class Transportation implements
       .setAttr(Fields.RAMP, element.isRamp() ? 1L : null)
       .setAttr(Fields.BRUNNEL, brunnel(element.isBridge(), element.isTunnel(), element.isFord()))
       .setAttr(Fields.LAYER, nullIfLong(element.layer(), 0))
+      .setAttr(Fields.LEVEL, level(element.source()))
       .setSortKey(element.zOrder())
       .setMinPixelSize(0) // merge during post-processing, then limit by size
       .setMinZoom(12);
@@ -696,6 +705,7 @@ public class Transportation implements
       .setAttr(Fields.RAMP, element.isRamp() ? 1L : null)
       .setAttr(Fields.BRUNNEL, brunnel(element.isBridge(), element.isTunnel(), element.isFord()))
       .setAttr(Fields.LAYER, nullIfLong(element.layer(), 0))
+      .setAttr(Fields.LEVEL, level(element.source()))
       .setSortKey(element.zOrder())
       .setMinPixelSize(0) // merge during post-processing, then limit by size
       .setMinZoom(4)

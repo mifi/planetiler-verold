@@ -463,8 +463,8 @@ class ImaginariumTest extends AbstractLayerTest {
       "bicycle", "yes", "foot", "yes", "horse", "no", "mtb_scale", "1", "official", 1, "ramp", 1, "toll", 1,
       "indoor", 1, "level", 1L, "sidewalk", "both", "lit", "yes", "maxspeed", "50", "maxheight", "4",
       "turn:lanes", "left|through", "surface:osm", "asphalt", "service:osm", "driveway"));
-    assertEquals(List.of(feature("transportation", 52, line, tags("class", "minor", "sidewalk", "both", "lit",
-      "yes", "maxspeed", "50", "maxheight", "4", "turn:lanes", "left|through", "surface:osm", "asphalt",
+    assertEquals(List.of(feature("transportation", 52, line, tags("class", "minor", "level", 1L, "sidewalk", "both",
+      "lit", "yes", "maxspeed", "50", "maxheight", "4", "turn:lanes", "left|through", "surface:osm", "asphalt",
       "service:osm", "driveway"))), Imaginarium.trimmed("transportation", List.of(road)));
     // A building keeps its id; an entrance, a point in its layer, none.
     var building = feature("building", 52, line, Map.of("building", "yes", "_osm_id", 5L));
