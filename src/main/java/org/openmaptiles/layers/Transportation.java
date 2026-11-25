@@ -53,6 +53,7 @@ import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmReader;
 import com.onthegomap.planetiler.reader.osm.OsmRelationInfo;
+import com.onthegomap.planetiler.reader.osm.SplitWay;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.MemoryEstimator;
 import com.onthegomap.planetiler.util.Parse;
@@ -512,7 +513,7 @@ public class Transportation implements
 
       boolean expressway = element.expressway() && !"motorway".equals(highway) && !(element.isRamp() || highwayRamp);
 
-      FeatureCollector.Feature feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
+      FeatureCollector.Feature feature = lineOf(features)
         // main attributes at all zoom levels (used for grouping <= z8)
         .setAttr(Fields.CLASS, coalesce(minZoomAndNewClass.classOverride, highwayClass))
         .setAttr(Fields.SUBCLASS, highwaySubclass(highwayClass, element.publicTransport(), highway))
@@ -620,8 +621,19 @@ public class Transportation implements
     return new MinZoomAndNewClass(minzoom, highwayClassOverride);
   }
 
+  /**
+   * Imaginarium: a transportation line, as each of its way's pieces cut at its junctions is made
+   * (Imaginarium.cutAtJunctions): under its own id, numbered in the way's order, and however short at the near zoom (a
+   * piece between two junctions a hand's breadth apart), so the way is whole when its pieces are joined again.
+   */
+  private static FeatureCollector.Feature lineOf(FeatureCollector features) {
+    return features.splitLine(LAYER_NAME, true).setBufferPixels(BUFFER_SIZE).setMinPixelSizeAtMaxZoom(0);
+  }
+
   private boolean isPierPolygon(Tables.OsmHighwayLinestring element) {
-    if ("pier".equals(element.manMade())) {
+    // Imaginarium: a closed pier is not cut at its junctions (Imaginarium.cutAtJunctions), so a piece of one that is
+    // cut is a line, closed or not.
+    if ("pier".equals(element.manMade()) && !(element.source() instanceof SplitWay)) {
       try {
         if (element.source().worldGeometry()instanceof LineString lineString && lineString.isClosed()) {
           // ignore this because it's a polygon
@@ -654,7 +666,7 @@ public class Transportation implements
       } else {
         minzoom = 14;
       }
-      var feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
+      var feature = lineOf(features)
         .setAttr(Fields.CLASS, clazz)
         .setAttr(Fields.SUBCLASS, railway)
         .setAttr(Fields.SERVICE, service(service))
@@ -673,7 +685,7 @@ public class Transportation implements
 
   @Override
   public void process(Tables.OsmAerialwayLinestring element, FeatureCollector features) {
-    var feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
+    var feature = lineOf(features)
       .setAttr(Fields.CLASS, "aerialway")
       .setAttr(Fields.SUBCLASS, element.aerialway())
       .setAttr(Fields.SERVICE, service(element.service()))
@@ -689,7 +701,7 @@ public class Transportation implements
 
   @Override
   public void process(Tables.OsmShipwayLinestring element, FeatureCollector features) {
-    var feature = features.splitLine(LAYER_NAME, false).setBufferPixels(BUFFER_SIZE)
+    var feature = lineOf(features)
       .setAttr(Fields.CLASS, element.shipway()) // "ferry"
       // no subclass
       .setAttr(Fields.SERVICE, service(element.service()))
@@ -727,7 +739,8 @@ public class Transportation implements
   @Override
   public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
     // Imaginarium: the pieces of a way cut at its junctions (Imaginarium.cutAtJunctions), each simplified as it was
-    // made, are joined again, and at the near zoom not simplified again, so the points where they meet other ways stay.
+    // made, are joined again in the way's order under its id, and at the near zoom not simplified again, so the points
+    // where they meet other ways stay.
     items = Imaginarium.piecesJoined(items);
     double tolerance = zoom >= Imaginarium.NEAR_ZOOM ? -1 : config.tolerance(zoom);
     double minLength = coalesce(MIN_LENGTH.apply(zoom), 0).doubleValue();

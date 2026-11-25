@@ -10,8 +10,8 @@ import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.reader.osm.OsmSourceFeature;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.LineString;
 import org.openmaptiles.generated.Tables;
@@ -86,77 +85,74 @@ public final class Imaginarium {
    * way, before it has a shape): each is cut by Planetiler at every node it shares with another of them or with itself
    * (`splitOsmWayAtIntersections`), so every junction, crossing and way's end on another's run is a point of both lines
    * in the tiles, which simplifying would otherwise drop where the ways run straight through it. The pieces are made
-   * each as the way would be (`splitLine`, the way's own id) and joined again as each tile is written, unsimplified at
-   * the near zoom (Transportation `postProcess`), so a way is still one line, with those points kept.
+   * each as the way would be (`splitLine`, numbered in the way's order) and joined again in that order as each tile is
+   * written, unsimplified at the near zoom (Transportation `postProcess`), so a way is still one line, from its own
+   * first node, with those points kept.
    */
   private static final Expression TRANSPORTATION_LINES = Expression.or(
     Tables.OsmHighwayLinestring.MAPPING, Tables.OsmRailwayLinestring.MAPPING, Tables.OsmAerialwayLinestring.MAPPING,
     Tables.OsmShipwayLinestring.MAPPING).replace(e -> e instanceof Expression.MatchType, Expression.TRUE).simplify();
 
   /**
-   * Whether a way is one the transportation layer makes lines of, cut at the nodes it shares (TRANSPORTATION_LINES).
+   * Whether a way is one the transportation layer makes lines of, cut at the nodes it shares (TRANSPORTATION_LINES):
+   * not a closed pier, which it makes a polygon of (Transportation `isPierPolygon`).
    */
   public static boolean cutAtJunctions(OsmElement.Way way) {
-    return TRANSPORTATION_LINES.evaluate(way);
+    return TRANSPORTATION_LINES.evaluate(way) && !(way.isClosed() && "pier".equals(way.getTag("man_made")));
   }
 
   /**
-   * A tile's lines with each way's pieces (cut at its junctions, see TRANSPORTATION_LINES) joined end to start again,
-   * in the way's own direction and with the points they met at: one line a way where it runs on, as it was before it
-   * was cut, before the layer's merging (which would turn a one-way way, and drops points it need not keep).
+   * A tile's lines with each way's pieces (cut at its junctions, see TRANSPORTATION_LINES) joined again in the way's
+   * order, end to start, with the points they met at, under the way's own id: one line a way where it runs on, as it
+   * was before it was cut, from its own first node (a closed way's too), before the layer's merging. A piece's id is
+   * Planetiler's for it (the way's id plus its place along the way times a power of ten, as a vector tile id: × 10 and
+   * the element's type), so a way's pieces are in order by their ids, and the way's own is its OSM_ID × 10 and the
+   * type.
    */
   public static List<VectorTile.Feature> piecesJoined(List<VectorTile.Feature> items) throws GeometryException {
-    Map<List<Object>, List<VectorTile.Feature>> byWay = new LinkedHashMap<>();
+    Map<Map<String, Object>, List<VectorTile.Feature>> byWay = new LinkedHashMap<>();
     List<VectorTile.Feature> joined = new ArrayList<>(items.size());
     for (var item : items) {
-      if (item.id() != VectorTile.NO_FEATURE_ID && item.geometry().geomType() == GeometryType.LINE) {
-        byWay.computeIfAbsent(List.of(item.id(), item.tags()), key -> new ArrayList<>()).add(item);
+      if (item.tags().get(OSM_ID) instanceof Number && item.geometry().geomType() == GeometryType.LINE) {
+        byWay.computeIfAbsent(item.tags(), key -> new ArrayList<>()).add(item);
       } else {
         joined.add(item);
       }
     }
     for (var pieces : byWay.values()) {
+      var first = pieces.getFirst();
+      long id = ((Number) first.tags().get(OSM_ID)).longValue() * 10 + Math.floorMod(first.id(), 10);
       if (pieces.size() == 1) {
-        joined.add(pieces.getFirst());
+        joined.add(first.id() == id ? first : first.copyWithIdAndGeometry(id, first.geometry()));
         continue;
       }
+      pieces.sort(Comparator.comparingLong(VectorTile.Feature::id));
       List<LineString> lines = new ArrayList<>();
+      CoordinateList points = null;
       for (var piece : pieces) {
         var geometry = piece.geometry().decode();
         for (int at = 0; at < geometry.getNumGeometries(); at++) {
-          lines.add((LineString) geometry.getGeometryN(at));
+          var line = (LineString) geometry.getGeometryN(at);
+          if (points == null || !points.getLast().equals2D(line.getCoordinateN(0))) {
+            lineOf(points, lines);
+            points = new CoordinateList();
+          }
+          points.add(line.getCoordinates(), false);
         }
       }
-      joined.add(pieces.getFirst().copyWithNewGeometry(GeoUtils.combineLineStrings(chained(lines))));
+      lineOf(points, lines);
+      if (!lines.isEmpty()) {
+        joined.add(first.copyWithIdAndGeometry(id, VectorTile.encodeGeometry(GeoUtils.combineLineStrings(lines))));
+      }
     }
     return joined;
   }
 
-  /** Lines joined where one ends and another starts, from those no other runs into first, then any left (a loop). */
-  private static List<LineString> chained(List<LineString> lines) {
-    Map<Coordinate, Integer> starting = new HashMap<>();
-    Set<Coordinate> ending = new HashSet<>();
-    for (int at = 0; at < lines.size(); at++) {
-      starting.putIfAbsent(lines.get(at).getCoordinateN(0), at);
-      ending.add(lines.get(at).getCoordinateN(lines.get(at).getNumPoints() - 1));
+  /** Points joined into a line, if they are one (a piece shorter than the tile's grid is a point). */
+  private static void lineOf(CoordinateList points, List<LineString> lines) {
+    if (points != null && points.size() >= 2) {
+      lines.add(GeoUtils.JTS_FACTORY.createLineString(points.toCoordinateArray()));
     }
-    boolean[] taken = new boolean[lines.size()];
-    List<LineString> chains = new ArrayList<>();
-    for (boolean heads : new boolean[]{true, false}) {
-      for (int first = 0; first < lines.size(); first++) {
-        if (taken[first] || (heads && ending.contains(lines.get(first).getCoordinateN(0)))) {
-          continue;
-        }
-        taken[first] = true;
-        var points = new CoordinateList(lines.get(first).getCoordinates(), false);
-        for (Integer next; (next = starting.get(points.getLast())) != null && !taken[next];) {
-          taken[next] = true;
-          points.add(lines.get(next).getCoordinates(), false);
-        }
-        chains.add(GeoUtils.JTS_FACTORY.createLineString(points.toCoordinateArray()));
-      }
-    }
-    return chains;
   }
 
   /** The OpenStreetMap id of a source feature (see OSM_ID). */

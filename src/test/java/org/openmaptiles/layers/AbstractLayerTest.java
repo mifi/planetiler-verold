@@ -232,7 +232,8 @@ public abstract class AbstractLayerTest {
   }
 
   /**
-   * And with the point where the two met kept, and their id (Imaginarium: a way's pieces cut at its junctions, z14).
+   * And with the point where the two met kept (Imaginarium: lines are not simplified again at z14, see
+   * Imaginarium.piecesJoined).
    */
   protected void testMergesLinestrings(Map<String, Object> attrs, String layer, double length, int zoom,
     boolean joinKept) throws GeometryException {
@@ -252,7 +253,7 @@ public abstract class AbstractLayerTest {
     );
     var connected = new VectorTile.Feature(
       layer,
-      joinKept ? 1 : 0, // (a way's pieces joined keep its id)
+      0,
       VectorTile.encodeGeometry(joinKept ? newLineString(0, 0, length / 2, 0, length, 0) :
         newLineString(0, 0, length, 0)),
       attrs,

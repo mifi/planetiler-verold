@@ -552,23 +552,48 @@ class ImaginariumTest extends AbstractLayerTest {
       Map.of("railway", "platform"), Map.of())) {
       assertFalse(Imaginarium.cutAtJunctions(new OsmElement.Way(1, tags, nodes)), tags::toString);
     }
+    // A pier is, but not a closed one, which is a polygon.
+    var ring = new com.carrotsearch.hppc.LongArrayList();
+    ring.add(1, 2, 3, 4, 1);
+    assertTrue(Imaginarium.cutAtJunctions(new OsmElement.Way(1, Map.of("man_made", "pier"), nodes)));
+    assertFalse(Imaginarium.cutAtJunctions(new OsmElement.Way(1, Map.of("man_made", "pier"), ring)));
+    assertTrue(Imaginarium.cutAtJunctions(new OsmElement.Way(1, Map.of("highway", "footway"), ring)));
   }
 
   @Test
   void testPiecesOfAWayJoinedWithTheirJunctions() throws GeometryException {
-    // A way cut where another meets it, its pieces running straight on: one line again, the point between kept.
+    // A way cut where another meets it, its pieces running straight on: one line again, the point between kept, under
+    // the way's id (its pieces' ids are Planetiler's: the way's, plus its place along the way times a power of ten).
     var tags = tags("class", "minor", "_osm_id", 5L);
     var pieces = List.of(feature("transportation", 52, newLineString(10, 10, 20, 10), tags),
-      feature("transportation", 52, newLineString(20, 10, 30, 10), tags));
+      feature("transportation", 152, newLineString(20, 10, 30, 10), tags));
     var joined = profile.postProcessLayerFeatures("transportation", 14, pieces);
     assertEquals(1, joined.size());
+    assertEquals(52, joined.getFirst().id());
     assertEquals(3, joined.getFirst().geometry().decode().getNumPoints());
     // A one-way way's too, in its own direction, whatever order its pieces come in.
     var oneway = tags("class", "minor", "oneway", 1, "_osm_id", 5L);
-    var onewayPieces = List.of(feature("transportation", 52, newLineString(20, 10, 30, 10), oneway),
+    var onewayPieces = List.of(feature("transportation", 152, newLineString(20, 10, 30, 10), oneway),
       feature("transportation", 52, newLineString(10, 10, 20, 10), oneway));
     var onewayJoined = profile.postProcessLayerFeatures("transportation", 14, onewayPieces);
     assertEquals(1, onewayJoined.size());
     assertEquals(newLineString(10, 10, 20, 10, 30, 10), onewayJoined.getFirst().geometry().decode());
+    // A piece alone in a tile, the way's id.
+    var alone = profile.postProcessLayerFeatures("transportation", 14,
+      List.of(feature("transportation", 252, newLineString(30, 10, 40, 10), tags("class", "minor", "_osm_id", 5L))));
+    assertEquals(52, alone.getFirst().id());
+  }
+
+  @Test
+  void testClosedWayJoinedFromItsFirstNode() throws GeometryException {
+    // A ring cut where a way ends on it (Oslo's Valkyrie platform and its steps): whole again, from its own first node,
+    // its pieces in any order.
+    var tags = tags("class", "path", "subclass", "platform", "_osm_id", 7L);
+    var pieces = List.of(feature("transportation", 172, newLineString(20, 20, 10, 20, 10, 10), tags),
+      feature("transportation", 72, newLineString(10, 10, 20, 10, 20, 20), tags));
+    var joined = profile.postProcessLayerFeatures("transportation", 14, pieces);
+    assertEquals(1, joined.size());
+    assertEquals(72, joined.getFirst().id());
+    assertEquals(newLineString(10, 10, 20, 10, 20, 20, 10, 20, 10, 10), joined.getFirst().geometry().decode());
   }
 }
