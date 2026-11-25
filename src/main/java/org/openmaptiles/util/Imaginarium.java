@@ -28,7 +28,7 @@ public final class Imaginarium {
 
   /** The zoom everything is read at near the eye. */
   public static final int NEAR_ZOOM = 14;
-  /** The far zoom: water, runways and helipads, and the tunnel and bridge lines the tunnel index follows. */
+  /** The far zoom: water, runways and helipads. */
   public static final int FAR_ZOOM = 12;
 
   /**
@@ -39,9 +39,8 @@ public final class Imaginarium {
    */
   public static final String OSM_ID = "_osm_id";
 
-  /** The layers the far zoom keeps (of transportation only the tunnels and bridges). */
-  private static final Set<String> FAR_LAYERS = Set.of("water", "aeroway", "transportation");
-  private static final Set<String> FAR_BRUNNELS = Set.of("tunnel", "bridge");
+  /** The layers the far zoom keeps. */
+  private static final Set<String> FAR_LAYERS = Set.of("water", "aeroway");
 
   /**
    * The tags a building and a building part carry as tagged. Lengths (`height`, `min_height`, `roof:height`) stay as
@@ -300,13 +299,6 @@ public final class Imaginarium {
     if (zoom == NEAR_ZOOM) {
       return items;
     }
-    if (zoom != FAR_ZOOM || !FAR_LAYERS.contains(layer)) {
-      return List.of();
-    }
-    return "transportation".equals(layer) ?
-      items.stream()
-        .filter(item -> item.tags().get("brunnel")instanceof String brunnel && FAR_BRUNNELS.contains(brunnel))
-        .toList() :
-      items;
+    return zoom == FAR_ZOOM && FAR_LAYERS.contains(layer) ? items : List.of();
   }
 }

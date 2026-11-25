@@ -33,7 +33,7 @@ import org.openmaptiles.util.Utils;
 
 /**
  * Imaginarium: the expected `_minzoom`s in the layers' tests are what our tiles have, not OpenMapTiles': a feature
- * reaching z14 is made from z14, or for water, aeroway and transportation from z12 if it started lower (see
+ * reaching z14 is made from z14, or for water and aeroway from z12 if it started lower (see
  * {@link org.openmaptiles.util.Imaginarium#slimmed}); one ending below z14 (Natural Earth's) is as OpenMapTiles has it.
  * The post-processing at zooms our tiles have none of is asked of OpenMapTiles' own (see `postProcessedUnwritten`).
  */

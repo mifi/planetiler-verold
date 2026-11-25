@@ -43,9 +43,8 @@ import org.openmaptiles.util.VerifyMonaco;
  * Generates an entire map for the smallest openstreetmap extract available (Monaco) and asserts that expected output
  * features exist
  * <p>
- * Imaginarium: only z12 and z14 are written (see {@link org.openmaptiles.util.Imaginarium}), z12 with water, aeroway
- * and the tunnels and bridges only; buildings are not merged, and an id each keeps the lines apart, so the counts are
- * ours.
+ * Imaginarium: only z12 and z14 are written (see {@link org.openmaptiles.util.Imaginarium}), z12 with water and aeroway
+ * only; buildings are not merged, and an id each keeps the lines apart, so the counts are ours.
  */
 class OpenMapTilesTest {
 
@@ -138,14 +137,11 @@ class OpenMapTilesTest {
 
   @Test
   void testFarZoomIsSlim() throws IOException {
-    // Imaginarium: z12 has water, aeroway and the tunnels and bridges of transportation, nothing else.
+    // Imaginarium: z12 has water and aeroway, nothing else.
     for (var tile : TestUtils.getTiles(mbtiles)) {
       if (tile.coord().z() == 12) {
         for (var feature : VectorTile.decode(gunzip(tile.bytes()))) {
-          assertTrue(Set.of("water", "aeroway", "transportation").contains(feature.layer()), feature::toString);
-          if ("transportation".equals(feature.layer())) {
-            assertTrue(Set.of("tunnel", "bridge").contains(feature.tags().get("brunnel")), feature::toString);
-          }
+          assertTrue(Set.of("water", "aeroway").contains(feature.layer()), feature::toString);
         }
       }
     }

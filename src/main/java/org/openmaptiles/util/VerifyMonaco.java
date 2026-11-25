@@ -23,10 +23,10 @@ public class VerifyMonaco {
    */
   public static Verify verify(Mbtiles mbtiles) {
     Verify verify = Verify.verify(mbtiles);
-    // Imaginarium: only z12 and z14 are written, z12 with water, aeroway and the tunnels and bridges only.
+    // Imaginarium: only z12 and z14 are written, z12 with water and aeroway only.
     verify.checkMinFeatureCount(MONACO_BOUNDS, "building", Map.of(), 14, 14, 100, Polygon.class);
     verify.checkMinFeatureCount(MONACO_BOUNDS, "transportation", Map.of(), 14, 14, 5, LineString.class);
-    verify.checkMinFeatureCount(MONACO_BOUNDS, "transportation", Map.of("brunnel", "tunnel"), 12, 12, 5,
+    verify.checkMinFeatureCount(MONACO_BOUNDS, "transportation", Map.of("brunnel", "tunnel"), 14, 14, 5,
       LineString.class);
     verify.checkMinFeatureCount(MONACO_BOUNDS, "landcover", Map.of(
       "class", "grass",

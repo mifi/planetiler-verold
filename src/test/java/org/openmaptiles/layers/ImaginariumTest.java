@@ -165,7 +165,7 @@ class ImaginariumTest extends AbstractLayerTest {
   void testRoadFields() {
     assertFeatures(14, List.of(Map.of(
       "_layer", "transportation",
-      "_minzoom", 12,
+      "_minzoom", 14,
       "class", "minor",
       "_osm_id", 0L,
       "lanes", "2",
@@ -209,12 +209,13 @@ class ImaginariumTest extends AbstractLayerTest {
   }
 
   @Test
-  void testFarZoomKeepsOnlyTunnelsAndBridges() throws GeometryException {
+  void testFarZoomKeepsNoTransportation() throws GeometryException {
     var tunnel = new VectorTile.Feature("transportation", 1, VectorTile.encodeGeometry(rectangle(0, 1)),
       Map.of("brunnel", "tunnel"), 0);
     var road = new VectorTile.Feature("transportation", 2, VectorTile.encodeGeometry(rectangle(0, 1)),
       Map.of("class", "primary"), 0);
-    assertEquals(List.of(tunnel), Imaginarium.kept("transportation", 12, List.of(tunnel, road)));
+    assertEquals(List.of(), Imaginarium.kept("transportation", 12, List.of(tunnel, road)));
+    assertEquals(List.of(road), Imaginarium.kept("water", 12, List.of(road)));
     assertEquals(List.of(tunnel, road), Imaginarium.kept("transportation", 14, List.of(tunnel, road)));
     assertEquals(List.of(), Imaginarium.kept("transportation", 13, List.of(tunnel, road)));
     assertEquals(List.of(), Imaginarium.kept("building", 12, List.of(road)));
