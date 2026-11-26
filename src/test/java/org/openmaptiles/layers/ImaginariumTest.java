@@ -38,7 +38,8 @@ class ImaginariumTest extends AbstractLayerTest {
     Map.entry("roof:material", "roof_tiles"),
     Map.entry("building:colour", "#FA0"),
     Map.entry("building:material", "brick"),
-    Map.entry("religion", "christian")
+    Map.entry("religion", "christian"),
+    Map.entry("start_date", "~1923")
   );
 
   /** What TAGGED is in the tile: counts and the direction as numbers, colours as `#rrggbb`, lengths as tagged. */
@@ -59,7 +60,8 @@ class ImaginariumTest extends AbstractLayerTest {
     Map.entry("roof:material", "roof_tiles"),
     Map.entry("building:colour", "#ffaa00"),
     Map.entry("building:material", "brick"),
-    Map.entry("religion", "christian")
+    Map.entry("religion", "christian"),
+    Map.entry("start_date", 1923L)
   );
 
   private static Map<String, Object> with(Map<String, Object> base, String key, Object value) {
@@ -518,6 +520,174 @@ class ImaginariumTest extends AbstractLayerTest {
     )), process(pointFeature(Map.of(key, value))));
     // Only where mapped as a point: a bench drawn as a line is none.
     assertFeatures(14, List.of(), process(lineFeature(Map.of(key, value))));
+  }
+
+  @ParameterizedTest
+  @CsvSource(value = {
+    "1923, 1923",
+    "1923-05-01, 1923",
+    "~1920, 1920",
+    "1920s, 1920",
+    "before 1900, 1900",
+    "C19, null",
+    "19th century, null",
+    "9999, null",
+    "'', null",
+  }, nullValues = "null")
+  void testYearOf(String tagged, Long expected) {
+    assertEquals(expected, Imaginarium.yearOf(tagged));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "highway, crossing",
+    "highway, traffic_signals",
+    "highway, give_way",
+    "railway, level_crossing",
+    "railway, signal",
+    "traffic_calming, hump",
+    "traffic_calming, table",
+    "emergency, fire_hydrant",
+    "man_made, street_cabinet",
+    "man_made, mast",
+    "amenity, vending_machine",
+    "historic, memorial",
+  })
+  void testStanding(String key, String value) {
+    // By its key and its value as tagged, at the near zoom, a tile's margin of the furniture's.
+    var features = process(pointFeature(Map.of(key, value)));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "poi",
+      "_type", "point",
+      "_minzoom", 14,
+      "_buffer", Imaginarium.FURNITURE_BUFFER,
+      "class", key,
+      "subclass", value
+    )), features);
+    assertFeatures(14, List.of(), process(lineFeature(Map.of(key, value))));
+  }
+
+  @Test
+  void testStandingTags() {
+    assertFeatures(14, List.of(Map.of("_layer", "poi", "class", "highway", "subclass", "crossing", "crossing",
+      "zebra")), process(pointFeature(Map.of("highway", "crossing", "crossing", "zebra"))));
+    assertFeatures(14, List.of(Map.of("_layer", "poi", "class", "man_made", "subclass", "tower", "height", "40",
+      "tower:type", "communication")),
+      process(pointFeature(Map.of("man_made", "tower", "height", "40", "tower:type", "communication"))));
+    // A wind turbine, and no other generator; no power pole; a traffic calming of `no` none.
+    assertFeatures(14, List.of(Map.of("_layer", "poi", "class", "power", "subclass", "generator", "height", "100")),
+      process(pointFeature(Map.of("power", "generator", "generator:source", "wind", "height", "100"))));
+    assertFeatures(14, List.of(), process(pointFeature(Map.of("power", "generator", "generator:source", "solar"))));
+    // A power line's towers are its nodes (see testPowerLineEveryNode), and a pole none.
+    assertFeatures(14, List.of(), process(pointFeature(Map.of("power", "tower"))));
+    assertFeatures(14, List.of(), process(pointFeature(Map.of("power", "pole"))));
+    assertFeatures(14, List.of(), process(pointFeature(Map.of("traffic_calming", "no"))));
+  }
+
+  @Test
+  void testBusStopShelterAndBench() {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "poi",
+      "subclass", "bus_stop",
+      "shelter", "yes",
+      "bench", "no"
+    )), process(pointFeature(Map.of("highway", "bus_stop", "shelter", "yes", "bench", "no"))));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "landuse, barrier, fence",
+    "landuse, barrier, wall",
+    "landuse, barrier, hedge",
+    "landuse, barrier, retaining_wall",
+    "landuse, barrier, guard_rail",
+    "landuse, power, line",
+    "landcover, natural, tree_row",
+    "landcover, natural, cliff",
+  })
+  void testLined(String layer, String key, String value) {
+    var expected = new java.util.ArrayList<Map<String, Object>>(List.of(Map.of(
+      "_layer", layer,
+      "_type", "line",
+      "_minzoom", 14,
+      "_buffer", Imaginarium.FURNITURE_BUFFER,
+      "class", key,
+      "subclass", value
+    )));
+    if ("cliff".equals(value)) {
+      // (and OpenMapTiles' own, a layer we do not build)
+      expected.add(Map.of("_layer", "mountain_peak"));
+    }
+    assertFeatures(14, expected, process(lineFeature(Map.of(key, value))));
+    // A line only: a node tagged so is none.
+    assertFeatures(14, List.of(), process(pointFeature(Map.of(key, value))));
+  }
+
+  @Test
+  void testNotLined() {
+    assertFeatures(14, List.of(), process(lineFeature(Map.of("power", "minor_line"))));
+    assertFeatures(14, List.of(), process(lineFeature(Map.of("barrier", "yes"))));
+    assertFeatures(14, List.of(), process(lineFeature(Map.of("barrier", "kerb"))));
+  }
+
+  @Test
+  void testPowerLineEveryNode() {
+    var features = process(lineFeature(Map.of("power", "line"))).iterator();
+    assertEquals(0, features.next().getPixelToleranceAtZoom(14));
+    var fence = process(lineFeature(Map.of("barrier", "fence"))).iterator();
+    assertTrue(fence.next().getPixelToleranceAtZoom(14) > 0);
+  }
+
+  @Test
+  void testParkingAndPitch() {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "landuse",
+      "_type", "polygon",
+      "_minzoom", 14,
+      "class", "parking",
+      "parking", "surface"
+    ), Map.of("_layer", "poi")), process(polygonFeature(Map.of("amenity", "parking", "parking", "surface"))));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "landuse",
+      "class", "pitch",
+      "sport", "soccer"
+    ), Map.of("_layer", "poi")), process(polygonFeature(Map.of("leisure", "pitch", "sport", "soccer"))));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "orchard, landuse",
+    "vineyard, landuse",
+    "allotments, landuse",
+    "beach, natural",
+    "sand, natural",
+  })
+  void testLandcoverKept(String subclass, String key) {
+    assertFeatures(14, List.of(Map.of("_layer", "landcover", "subclass", subclass)),
+      process(polygonFeature(Map.of(key, subclass))));
+  }
+
+  @Test
+  void testMoreRoadFields() {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "transportation",
+      "lanes:forward", "2",
+      "lanes:backward", "1",
+      "cycleway:both", "lane",
+      "parking:both", "lane"
+    )), process(lineFeature(Map.of("highway", "residential", "lanes:forward", "2", "lanes:backward", "1",
+      "cycleway:both", "lane", "parking:both", "lane"))));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "transportation",
+      "subclass", "steps",
+      "step_count", "12",
+      "handrail", "yes"
+    )), process(lineFeature(Map.of("highway", "steps", "step_count", "12", "handrail", "yes"))));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "transportation",
+      "class", "rail",
+      "electrified", "contact_line"
+    )), process(lineFeature(Map.of("railway", "rail", "electrified", "contact_line"))));
   }
 
   @Test

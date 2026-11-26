@@ -57,6 +57,7 @@ import java.util.TreeMap;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
+import org.openmaptiles.util.Imaginarium;
 
 /**
  * Defines the logic for generating map elements for man-made land use polygons like cemeteries, zoos, and hospitals in
@@ -69,6 +70,7 @@ public class Landuse implements
   OpenMapTilesSchema.Landuse,
   OpenMapTilesProfile.NaturalEarthProcessor,
   ForwardingProfile.LayerPostProcessor,
+  OpenMapTilesProfile.OsmAllProcessor,
   Tables.OsmLandusePolygon.Handler {
 
   private static final ZoomFunction<Number> MIN_PIXEL_SIZE_THRESHOLDS = ZoomFunction.fromMaxZoomThresholds(Map.of(
@@ -121,6 +123,10 @@ public class Landuse implements
       var feature = features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
         .setAttr(Fields.CLASS, clazz)
         .setMinZoom(Z6_CLASSES.contains(clazz) ? 6 : 9);
+      // Imaginarium: which sport a pitch is marked out for, as tagged.
+      if ("pitch".equals(clazz)) {
+        feature.setAttrWithMinzoom("sport", nullIfEmpty(element.source().getString("sport")), Imaginarium.NEAR_ZOOM);
+      }
       if (FieldValues.CLASS_RESIDENTIAL.equals(clazz)) {
         feature
           .setMinPixelSize(0.1)
@@ -129,6 +135,19 @@ public class Landuse implements
         feature
           .setMinPixelSizeOverrides(MIN_PIXEL_SIZE_THRESHOLDS);
       }
+    }
+  }
+
+  /** Imaginarium: the lines of this layer the world can stand up (see Imaginarium#LINED). */
+  @Override
+  public void processAllOsm(SourceFeature feature, FeatureCollector features) {
+    Imaginarium.lined(LAYER_NAME, feature, features);
+    // and a car park's ground, with which kind it is as tagged.
+    if (feature.canBePolygon() && feature.hasTag("amenity", "parking")) {
+      features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE).setMinZoom(Imaginarium.NEAR_ZOOM)
+        .setMinPixelSizeOverrides(MIN_PIXEL_SIZE_THRESHOLDS)
+        .setAttr(Fields.CLASS, "parking")
+        .setAttr("parking", nullIfEmpty(feature.getString("parking")));
     }
   }
 

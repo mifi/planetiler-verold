@@ -689,7 +689,7 @@ public class Transportation implements
   }
 
   /** Imaginarium: what a railway carries as tagged, beside its id. */
-  private static final List<String> RAIL_TAGS = List.of("tunnel", "covered");
+  private static final List<String> RAIL_TAGS = List.of("tunnel", "covered", "electrified");
 
   @Override
   public void process(Tables.OsmAerialwayLinestring element, FeatureCollector features) {

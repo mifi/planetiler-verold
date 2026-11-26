@@ -185,8 +185,8 @@ class OpenMapTilesTest {
 
   @Test
   void testWrittenWithoutWhatNothingReads() throws IOException {
-    // Imaginarium: ids only on buildings' outlines and parts and on transportation, landcover only the parks, a poi's
-    // name only a fuel station's, no house numbers' text; and the street furniture and trees as points.
+    // Imaginarium: ids only on buildings' outlines and parts and on transportation, landcover only what is kept and its
+    // lines, a poi's name only a fuel station's, no house numbers' text; and the street furniture and trees as points.
     Map<String, Integer> furniture = new java.util.HashMap<>();
     for (var tile : TestUtils.getTiles(mbtiles)) {
       for (var feature : VectorTile.decode(gunzip(tile.bytes()))) {
@@ -195,7 +195,8 @@ class OpenMapTilesTest {
           ("building".equals(feature.layer()) && !tags.containsKey("entrance"));
         assertTrue(ids ? feature.id() != 0 : feature.id() == 0, feature::toString);
         switch (feature.layer()) {
-          case "landcover" -> assertTrue(Imaginarium.LANDCOVER_KEPT.contains(tags.get("subclass")), feature::toString);
+          case "landcover" -> assertTrue(Imaginarium.LANDCOVER_KEPT.contains(tags.get("subclass")) ||
+            Imaginarium.LINED.stream().anyMatch(lined -> lined.key().equals(tags.get("class"))), feature::toString);
           case "housenumber" -> assertTrue(tags.isEmpty(), feature::toString);
           case "poi" -> {
             assertTrue(!tags.containsKey("rank") && !tags.containsKey("indoor"), feature::toString);

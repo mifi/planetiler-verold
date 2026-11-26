@@ -65,6 +65,9 @@ public final class Imaginarium {
   /** Which way a roof faces down its slope, as degrees clockwise from north (see {@link #degreesOf}). */
   public static final String ROOF_DIRECTION = "roof:direction";
 
+  /** When a building was built, as the year it says (see {@link #yearOf}). */
+  public static final String START_DATE = "start_date";
+
   /** The colours a building and a part carry, as `#rrggbb` (see {@link #colourOf}). */
   public static final List<String> BUILDING_COLOURS = List.of("building:colour", "roof:colour");
 
@@ -72,7 +75,9 @@ public final class Imaginarium {
    * The tags a road carries as tagged (`surface` and `service` are OpenMapTiles' own reduced values; see ROAD_RENAMED).
    */
   public static final List<String> ROAD_TAGS = List.of(
-    "lanes", "width", "sidewalk", "lit", "maxheight", "maxspeed", "turn:lanes", "tunnel", "covered");
+    "lanes", "width", "sidewalk", "lit", "maxheight", "maxspeed", "turn:lanes", "tunnel", "covered", "lanes:forward",
+    "lanes:backward", "cycleway", "cycleway:left", "cycleway:right", "cycleway:both", "parking:both", "parking:left",
+    "parking:right", "step_count", "handrail");
 
   /** OpenStreetMap keys whose names OpenMapTiles uses for reduced values: carried as tagged under `<key>:osm`. */
   public static final List<String> ROAD_RENAMED = List.of("surface", "service");
@@ -225,10 +230,12 @@ public final class Imaginarium {
   }
 
   /**
-   * The subclasses of landcover the app reads, its parks (its vector/leisure.ts PARKS): the rest, the woods, grass,
-   * farmland, rock and ice, it has from ESA WorldCover, not the tiles.
+   * The subclasses of landcover kept: the parks the app reads (its vector/leisure.ts PARKS), and, carried for later,
+   * orchards, vineyards, allotments, beaches and sand, which ESA WorldCover does not tell from the land about them; the
+   * rest, the woods, grass, farmland, rock and ice, it has from WorldCover, not the tiles.
    */
-  public static final Set<String> LANDCOVER_KEPT = Set.of("park", "village_green", "recreation_ground");
+  public static final Set<String> LANDCOVER_KEPT = Set.of("park", "village_green", "recreation_ground", "orchard",
+    "vineyard", "allotments", "beach", "sand");
 
   /**
    * The points of street furniture and trees the world can stand up, each in the poi layer by its key's value as both
@@ -248,6 +255,85 @@ public final class Imaginarium {
   }
 
   public static final List<String> TREE_TAGS = List.of("leaf_type", "genus");
+
+  /**
+   * A kind of thing mapped as a point that the world can stand up in the street or along a railway: what carries `key`
+   * (with one of `values`, or any but `no` where none are listed, and the `with` tags too), and the tags it carries as
+   * tagged.
+   */
+  public record Standing(String key, Set<String> values, Map<String, String> with, List<String> tags) {
+
+    /** Whether a feature is one of these. */
+    public boolean of(SourceFeature source) {
+      Object value = source.getTag(key);
+      if (value == null || "".equals(value) || "no".equals(value) ||
+        !(values.isEmpty() || values.contains(value.toString()))) {
+        return false;
+      }
+      for (var tag : with.entrySet()) {
+        if (!source.hasTag(tag.getKey(), tag.getValue())) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  /**
+   * The things mapped as points that the world can stand up, beside FURNITURE: each in the poi layer at the near zoom
+   * by its key as `class` and its value as tagged as `subclass` (`highway` `crossing`, `power` `tower`, `man_made`
+   * `tower`), carried as far past a tile's edge as the furniture, with its tags as tagged. In order: a node tagged as
+   * two of them is the first.
+   */
+  public static final List<Standing> STANDING = List.of(
+    new Standing("highway", Set.of("crossing"), Map.of(), List.of("crossing")),
+    new Standing("highway", Set.of("traffic_signals", "stop", "give_way"), Map.of(), List.of()),
+    new Standing("railway", Set.of("level_crossing", "signal"), Map.of(), List.of()),
+    new Standing("traffic_calming", Set.of(), Map.of(), List.of()),
+    new Standing("emergency", Set.of("fire_hydrant"), Map.of(), List.of()),
+    new Standing("man_made", Set.of("street_cabinet"), Map.of(), List.of()),
+    new Standing("man_made", Set.of("mast", "tower"), Map.of(), List.of("height", "tower:type")),
+    new Standing("amenity", Set.of("vending_machine"), Map.of(), List.of("vending")),
+    new Standing("historic", Set.of("memorial"), Map.of(), List.of("memorial")),
+    new Standing("power", Set.of("generator"), Map.of("generator:source", "wind"), List.of("height")));
+
+  /** What a bus stop's point in the poi layer carries beside OpenMapTiles' own fields, as tagged. */
+  public static final List<String> STOP_TAGS = List.of("shelter", "bench");
+
+  /**
+   * A kind of thing mapped as a line that the world can stand up: what carries `key` with one of `values`, a line in
+   * `layer` at the near zoom by its key as `class` and its value as `subclass`, carried as far past a tile's edge as
+   * the furniture; with every node it has where `everyNode` (a power line's are its towers), else simplified as any
+   * line.
+   */
+  public record Lined(String layer, String key, Set<String> values, boolean everyNode) {}
+
+  /**
+   * The lines the world can stand up: walls, fences and hedges, power lines on their towers, rows of trees and cliffs.
+   */
+  public static final List<Lined> LINED = List.of(
+    new Lined("landuse", "barrier", Set.of("wall", "fence", "hedge", "retaining_wall", "guard_rail"), false),
+    new Lined("landuse", "power", Set.of("line"), true),
+    new Lined("landcover", "natural", Set.of("tree_row", "cliff"), false));
+
+  /** Makes a feature that is a line of LINED in `layer` a line there. */
+  public static void lined(String layer, SourceFeature source, FeatureCollector features) {
+    if (!source.canBeLine()) {
+      return;
+    }
+    for (var lined : LINED) {
+      Object value = source.getTag(lined.key());
+      if (lined.layer().equals(layer) && value != null && lined.values().contains(value.toString())) {
+        var line = features.line(layer).setBufferPixels(FURNITURE_BUFFER).setMinZoom(NEAR_ZOOM)
+          .setAttr("class", lined.key()).setAttr("subclass", value.toString());
+        if (lined.everyNode()) {
+          line.setPixelTolerance(0).setPixelToleranceAtMaxZoom(0);
+        }
+        return;
+      }
+    }
+  }
+
   /**
    * How far past its edge a tile carries the furniture and the trees, z14 pixels: a building's margin, not the poi
    * layer's 64 for its labels, which would carry each into two or more tiles.
@@ -275,6 +361,7 @@ public final class Imaginarium {
       feature.setAttrWithMinzoom(key, numberOf(source.getTag(key)), NEAR_ZOOM);
     }
     feature.setAttrWithMinzoom(ROOF_DIRECTION, degreesOf(source.getTag(ROOF_DIRECTION)), NEAR_ZOOM);
+    feature.setAttrWithMinzoom(START_DATE, yearOf(source.getTag(START_DATE)), NEAR_ZOOM);
     for (String key : BUILDING_COLOURS) {
       feature.setAttrWithMinzoom(key, colourOf(source.getTag(key)), NEAR_ZOOM);
     }
@@ -283,6 +370,24 @@ public final class Imaginarium {
   /** A whole number as a long, so the tile carries it as an integer, and any other as a double. */
   private static Number compact(double value) {
     return value == Math.rint(value) && Math.abs(value) < 1e15 ? (Number) (long) value : (Number) value;
+  }
+
+  private static final Pattern YEAR = Pattern.compile("(?<!\\d)(\\d{3,4})(?!\\d)");
+
+  /**
+   * The year a date says, the first number of three or four digits in it (`1923`, `1923-05-01`, `~1920`, `1920s`,
+   * `before 1900`), or none where it has none or it is after 2100 (`19th century`, `C19`).
+   */
+  public static Long yearOf(Object value) {
+    if (value == null) {
+      return null;
+    }
+    Matcher matcher = YEAR.matcher(value.toString());
+    if (!matcher.find()) {
+      return null;
+    }
+    long year = Long.parseLong(matcher.group(1));
+    return year <= 2100 ? year : null;
   }
 
   private static final Pattern NUMBER = Pattern.compile("-?(\\d+\\.?\\d*|\\.\\d+)");
