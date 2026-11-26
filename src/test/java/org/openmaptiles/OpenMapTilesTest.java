@@ -185,9 +185,9 @@ class OpenMapTilesTest {
 
   @Test
   void testWrittenWithoutWhatNothingReads() throws IOException {
-    // Imaginarium: ids only on buildings' outlines and parts and on transportation, landcover only what is kept and its
-    // lines, a poi's name only a fuel station's, no house numbers' text; and the street furniture and trees as points.
-    Map<String, Integer> furniture = new java.util.HashMap<>();
+    // Imaginarium: ids only on buildings' outlines and parts and on transportation, landcover only what is kept, a poi's
+    // name only a fuel station's, no house numbers' text; and what stands, as points in poi and lines in structure.
+    Map<String, Integer> standing = new java.util.HashMap<>();
     for (var tile : TestUtils.getTiles(mbtiles)) {
       for (var feature : VectorTile.decode(gunzip(tile.bytes()))) {
         var tags = feature.tags();
@@ -195,16 +195,20 @@ class OpenMapTilesTest {
           ("building".equals(feature.layer()) && !tags.containsKey("entrance"));
         assertTrue(ids ? feature.id() != 0 : feature.id() == 0, feature::toString);
         switch (feature.layer()) {
-          case "landcover" -> assertTrue(Imaginarium.LANDCOVER_KEPT.contains(tags.get("subclass")) ||
-            Imaginarium.LINED.stream().anyMatch(lined -> lined.key().equals(tags.get("class"))), feature::toString);
+          case "landcover" -> assertTrue(Imaginarium.LANDCOVER_KEPT.contains(tags.get("subclass")), feature::toString);
+          case "structure" -> {
+            assertTrue(Imaginarium.LINED.stream().anyMatch(lined -> lined.key().equals(tags.get("class")) &&
+              lined.values().contains(tags.get("subclass"))), feature::toString);
+            standing.merge((String) tags.get("subclass"), 1, Integer::sum);
+          }
           case "housenumber" -> assertTrue(tags.isEmpty(), feature::toString);
           case "poi" -> {
             assertTrue(!tags.containsKey("rank") && !tags.containsKey("indoor"), feature::toString);
             assertTrue(tags.keySet().stream().noneMatch(key -> key.startsWith("name:") || key.startsWith("name_")),
               feature::toString);
             assertTrue(!tags.containsKey("name") || "fuel".equals(tags.get("class")), feature::toString);
-            if (Imaginarium.FURNITURE.containsKey(tags.get("class"))) {
-              furniture.merge((String) tags.get("class"), 1, Integer::sum);
+            if (Imaginarium.STANDING.stream().anyMatch(each -> each.key().equals(tags.get("class")))) {
+              standing.merge((String) tags.get("subclass"), 1, Integer::sum);
             }
           }
           case "water" -> assertTrue(!tags.containsKey("id"), feature::toString);
@@ -216,8 +220,9 @@ class OpenMapTilesTest {
         }
       }
     }
-    assertTrue(furniture.getOrDefault("bench", 0) > 0, furniture::toString);
-    assertTrue(furniture.getOrDefault("tree", 0) > 0, furniture::toString);
+    for (String subclass : List.of("bench", "tree", "wall")) {
+      assertTrue(standing.getOrDefault(subclass, 0) > 0, standing::toString);
+    }
   }
 
   @Test

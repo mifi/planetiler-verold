@@ -138,11 +138,9 @@ public class Landuse implements
     }
   }
 
-  /** Imaginarium: the lines of this layer the world can stand up (see Imaginarium#LINED). */
+  /** Imaginarium: a car park's ground, with which kind it is as tagged. */
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {
-    Imaginarium.lined(LAYER_NAME, feature, features);
-    // and a car park's ground, with which kind it is as tagged.
     if (feature.canBePolygon() && feature.hasTag("amenity", "parking")) {
       features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE).setMinZoom(Imaginarium.NEAR_ZOOM)
         .setMinPixelSizeOverrides(MIN_PIXEL_SIZE_THRESHOLDS)

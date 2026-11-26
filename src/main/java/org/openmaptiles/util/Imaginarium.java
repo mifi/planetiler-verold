@@ -238,30 +238,15 @@ public final class Imaginarium {
     "vineyard", "allotments", "beach", "sand");
 
   /**
-   * The points of street furniture and trees the world can stand up, each in the poi layer by its key's value as both
-   * its class and its subclass (`street_lamp`, `bench`, `picnic_table`, `tree`), at the near zoom; a tree with its
-   * `leaf_type` and `genus` as tagged.
-   */
-  public static final Map<String, String> FURNITURE = furniture();
-
-  /** FURNITURE in a fixed order, so a node tagged as two of them is the same one in every build: the first. */
-  private static Map<String, String> furniture() {
-    var furniture = new java.util.LinkedHashMap<String, String>();
-    furniture.put("street_lamp", "highway");
-    furniture.put("bench", "amenity");
-    furniture.put("picnic_table", "leisure");
-    furniture.put("tree", "natural");
-    return java.util.Collections.unmodifiableMap(furniture);
-  }
-
-  public static final List<String> TREE_TAGS = List.of("leaf_type", "genus");
-
-  /**
-   * A kind of thing mapped as a point that the world can stand up in the street or along a railway: what carries `key`
-   * (with one of `values`, or any but `no` where none are listed, and the `with` tags too), and the tags it carries as
-   * tagged.
+   * A kind of thing mapped as a point or a line that the world can stand up: what carries `key` with one of `values`
+   * (any but `no` where none are listed) and the `with` tags too; written by its key as `class` and its value as tagged
+   * as `subclass`, with its `tags` as tagged.
    */
   public record Standing(String key, Set<String> values, Map<String, String> with, List<String> tags) {
+
+    Standing(String key, Set<String> values, List<String> tags) {
+      this(key, values, Map.of(), tags);
+    }
 
     /** Whether a feature is one of these. */
     public boolean of(SourceFeature source) {
@@ -280,65 +265,61 @@ public final class Imaginarium {
   }
 
   /**
-   * The things mapped as points that the world can stand up, beside FURNITURE: each in the poi layer at the near zoom
-   * by its key as `class` and its value as tagged as `subclass` (`highway` `crossing`, `power` `tower`, `man_made`
-   * `tower`), carried as far past a tile's edge as the furniture, with its tags as tagged. In order: a node tagged as
-   * two of them is the first.
+   * The things mapped as points that the world can stand up, each in the poi layer at the near zoom (see
+   * {@link Standing}: `highway` `street_lamp`, `natural` `tree`, `man_made` `tower`), carried STANDING_BUFFER past a
+   * tile's edge. In order: a node tagged as two of them is the first.
    */
   public static final List<Standing> STANDING = List.of(
-    new Standing("highway", Set.of("crossing"), Map.of(), List.of("crossing")),
-    new Standing("highway", Set.of("traffic_signals", "stop", "give_way"), Map.of(), List.of()),
-    new Standing("railway", Set.of("level_crossing", "signal"), Map.of(), List.of()),
-    new Standing("traffic_calming", Set.of(), Map.of(), List.of()),
-    new Standing("emergency", Set.of("fire_hydrant"), Map.of(), List.of()),
-    new Standing("man_made", Set.of("street_cabinet"), Map.of(), List.of()),
-    new Standing("man_made", Set.of("mast", "tower"), Map.of(), List.of("height", "tower:type")),
-    new Standing("amenity", Set.of("vending_machine"), Map.of(), List.of("vending")),
-    new Standing("historic", Set.of("memorial"), Map.of(), List.of("memorial")),
+    new Standing("highway", Set.of("street_lamp", "crossing", "traffic_signals", "stop", "give_way"),
+      List.of("crossing")),
+    new Standing("amenity", Set.of("bench", "vending_machine"), List.of("vending")),
+    new Standing("leisure", Set.of("picnic_table"), List.of()),
+    new Standing("natural", Set.of("tree"), List.of("leaf_type", "genus")),
+    new Standing("railway", Set.of("level_crossing", "signal"), List.of()),
+    new Standing("traffic_calming", Set.of(), List.of()),
+    new Standing("emergency", Set.of("fire_hydrant"), List.of()),
+    new Standing("man_made", Set.of("street_cabinet", "mast", "tower"), List.of("height", "tower:type")),
+    new Standing("historic", Set.of("memorial"), List.of("memorial")),
     new Standing("power", Set.of("generator"), Map.of("generator:source", "wind"), List.of("height")));
 
   /** What a bus stop's point in the poi layer carries beside OpenMapTiles' own fields, as tagged. */
   public static final List<String> STOP_TAGS = List.of("shelter", "bench");
 
   /**
-   * A kind of thing mapped as a line that the world can stand up: what carries `key` with one of `values`, a line in
-   * `layer` at the near zoom by its key as `class` and its value as `subclass`, carried as far past a tile's edge as
-   * the furniture; with every node it has where `everyNode` (a power line's are its towers), else simplified as any
-   * line.
+   * The things mapped as lines that the world can stand up, each in the structure layer at the near zoom (see
+   * {@link Standing}; `org.openmaptiles.addons.Structure`): walls, fences and hedges, power lines on their towers, rows
+   * of trees and cliffs.
    */
-  public record Lined(String layer, String key, Set<String> values, boolean everyNode) {}
+  public static final List<Standing> LINED = List.of(
+    new Standing("barrier", Set.of("wall", "fence", "hedge", "retaining_wall", "guard_rail"), List.of()),
+    new Standing("power", Set.of("line"), List.of()),
+    new Standing("natural", Set.of("tree_row", "cliff"), List.of()));
 
-  /**
-   * The lines the world can stand up: walls, fences and hedges, power lines on their towers, rows of trees and cliffs.
-   */
-  public static final List<Lined> LINED = List.of(
-    new Lined("landuse", "barrier", Set.of("wall", "fence", "hedge", "retaining_wall", "guard_rail"), false),
-    new Lined("landuse", "power", Set.of("line"), true),
-    new Lined("landcover", "natural", Set.of("tree_row", "cliff"), false));
-
-  /** Makes a feature that is a line of LINED in `layer` a line there. */
-  public static void lined(String layer, SourceFeature source, FeatureCollector features) {
-    if (!source.canBeLine()) {
-      return;
-    }
-    for (var lined : LINED) {
-      Object value = source.getTag(lined.key());
-      if (lined.layer().equals(layer) && value != null && lined.values().contains(value.toString())) {
-        var line = features.line(layer).setBufferPixels(FURNITURE_BUFFER).setMinZoom(NEAR_ZOOM)
-          .setAttr("class", lined.key()).setAttr("subclass", value.toString());
-        if (lined.everyNode()) {
-          line.setPixelTolerance(0).setPixelToleranceAtMaxZoom(0);
-        }
-        return;
+  /** The one of a list a feature is, the first; none where it is none of them. */
+  public static Standing standing(List<Standing> standing, SourceFeature source) {
+    for (var each : standing) {
+      if (each.of(source)) {
+        return each;
       }
+    }
+    return null;
+  }
+
+  /** Says what a feature stands as on what is made of it: its key as `class`, its value `subclass`, its tags. */
+  public static void stands(Standing standing, SourceFeature source, FeatureCollector.Feature feature) {
+    feature.setBufferPixels(STANDING_BUFFER).setMinZoom(NEAR_ZOOM)
+      .setAttr("class", standing.key())
+      .setAttr("subclass", source.getString(standing.key()));
+    for (String key : standing.tags()) {
+      feature.setAttr(key, Utils.nullIfEmpty(source.getString(key)));
     }
   }
 
   /**
-   * How far past its edge a tile carries the furniture and the trees, z14 pixels: a building's margin, not the poi
+   * How far past its edge a tile carries what stands (STANDING, LINED), z14 pixels: a building's margin, not the poi
    * layer's 64 for its labels, which would carry each into two or more tiles.
    */
-  public static final double FURNITURE_BUFFER = 4;
+  public static final double STANDING_BUFFER = 4;
 
   /** Puts the id and these tags, as tagged, on a feature at the near zoom. */
   public static void tagged(FeatureCollector.Feature feature, SourceFeature source, List<String> keys) {

@@ -504,25 +504,6 @@ class ImaginariumTest extends AbstractLayerTest {
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "highway, street_lamp",
-    "amenity, bench",
-    "leisure, picnic_table",
-    "natural, tree",
-  })
-  void testFurniture(String key, String value) {
-    assertFeatures(14, List.of(Map.of(
-      "_layer", "poi",
-      "_type", "point",
-      "_minzoom", 14,
-      "class", value,
-      "subclass", value
-    )), process(pointFeature(Map.of(key, value))));
-    // Only where mapped as a point: a bench drawn as a line is none.
-    assertFeatures(14, List.of(), process(lineFeature(Map.of(key, value))));
-  }
-
-  @ParameterizedTest
   @CsvSource(value = {
     "1923, 1923",
     "1923-05-01, 1923",
@@ -540,6 +521,10 @@ class ImaginariumTest extends AbstractLayerTest {
 
   @ParameterizedTest
   @CsvSource({
+    "highway, street_lamp",
+    "amenity, bench",
+    "leisure, picnic_table",
+    "natural, tree",
     "highway, crossing",
     "highway, traffic_signals",
     "highway, give_way",
@@ -554,16 +539,17 @@ class ImaginariumTest extends AbstractLayerTest {
     "historic, memorial",
   })
   void testStanding(String key, String value) {
-    // By its key and its value as tagged, at the near zoom, a tile's margin of the furniture's.
+    // By its key and its value as tagged, at the near zoom, a building's margin.
     var features = process(pointFeature(Map.of(key, value)));
     assertFeatures(14, List.of(Map.of(
       "_layer", "poi",
       "_type", "point",
       "_minzoom", 14,
-      "_buffer", Imaginarium.FURNITURE_BUFFER,
+      "_buffer", Imaginarium.STANDING_BUFFER,
       "class", key,
       "subclass", value
     )), features);
+    // Only where mapped as a point: a bench drawn as a line is none.
     assertFeatures(14, List.of(), process(lineFeature(Map.of(key, value))));
   }
 
@@ -571,6 +557,9 @@ class ImaginariumTest extends AbstractLayerTest {
   void testStandingTags() {
     assertFeatures(14, List.of(Map.of("_layer", "poi", "class", "highway", "subclass", "crossing", "crossing",
       "zebra")), process(pointFeature(Map.of("highway", "crossing", "crossing", "zebra"))));
+    // A key's tags on any of its values: the lights at a crossing say so too.
+    assertFeatures(14, List.of(Map.of("_layer", "poi", "class", "highway", "subclass", "traffic_signals", "crossing",
+      "traffic_signals")), process(pointFeature(Map.of("highway", "traffic_signals", "crossing", "traffic_signals"))));
     assertFeatures(14, List.of(Map.of("_layer", "poi", "class", "man_made", "subclass", "tower", "height", "40",
       "tower:type", "communication")),
       process(pointFeature(Map.of("man_made", "tower", "height", "40", "tower:type", "communication"))));
@@ -596,21 +585,21 @@ class ImaginariumTest extends AbstractLayerTest {
 
   @ParameterizedTest
   @CsvSource({
-    "landuse, barrier, fence",
-    "landuse, barrier, wall",
-    "landuse, barrier, hedge",
-    "landuse, barrier, retaining_wall",
-    "landuse, barrier, guard_rail",
-    "landuse, power, line",
-    "landcover, natural, tree_row",
-    "landcover, natural, cliff",
+    "barrier, fence",
+    "barrier, wall",
+    "barrier, hedge",
+    "barrier, retaining_wall",
+    "barrier, guard_rail",
+    "power, line",
+    "natural, tree_row",
+    "natural, cliff",
   })
-  void testLined(String layer, String key, String value) {
+  void testLined(String key, String value) {
     var expected = new java.util.ArrayList<Map<String, Object>>(List.of(Map.of(
-      "_layer", layer,
+      "_layer", "structure",
       "_type", "line",
       "_minzoom", 14,
-      "_buffer", Imaginarium.FURNITURE_BUFFER,
+      "_buffer", Imaginarium.STANDING_BUFFER,
       "class", key,
       "subclass", value
     )));
@@ -694,7 +683,8 @@ class ImaginariumTest extends AbstractLayerTest {
   void testTreeKind() {
     assertFeatures(14, List.of(Map.of(
       "_layer", "poi",
-      "class", "tree",
+      "class", "natural",
+      "subclass", "tree",
       "leaf_type", "broadleaved",
       "genus", "Betula",
       "height", "<null>"

@@ -67,8 +67,7 @@ public class Landcover implements
   OpenMapTilesSchema.Landcover,
   OpenMapTilesProfile.NaturalEarthProcessor,
   Tables.OsmLandcoverPolygon.Handler,
-  ForwardingProfile.LayerPostProcessor,
-  OpenMapTilesProfile.OsmAllProcessor {
+  ForwardingProfile.LayerPostProcessor {
 
   /*
    * Large ice areas come from natural earth and the rest come from OpenStreetMap at higher zoom
@@ -136,12 +135,6 @@ public class Landcover implements
         .setNumPointsAttr(TEMP_NUM_POINTS_ATTR)
         .setMinZoom(7);
     }
-  }
-
-  /** Imaginarium: the lines of this layer the world can stand up (see Imaginarium#LINED). */
-  @Override
-  public void processAllOsm(SourceFeature feature, FeatureCollector features) {
-    Imaginarium.lined(LAYER_NAME, feature, features);
   }
 
   @Override

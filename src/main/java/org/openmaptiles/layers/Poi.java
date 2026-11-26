@@ -334,41 +334,15 @@ public class Poi implements
   }
 
   /**
-   * Imaginarium: a street lamp, a bench, a picnic table or a tree mapped as a point, at the near zoom, by its value as
-   * class and subclass (see {@link Imaginarium#FURNITURE}); a tree with its leaf type and genus. Else what else stands
-   * in the street, along a railway or a power line, by its key as class and its value as subclass (see
+   * Imaginarium: what stands in the street, along a railway or a power line, mapped as a point (a street lamp, a bench,
+   * a tree, a crossing, a hydrant, a mast), by its key as class and its value as subclass (see
    * {@link Imaginarium#STANDING}).
    */
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {
-    if (!feature.isPoint()) {
-      return;
-    }
-    for (var furniture : Imaginarium.FURNITURE.entrySet()) {
-      if (feature.hasTag(furniture.getValue(), furniture.getKey())) {
-        var point = features.point(LAYER_NAME).setBufferPixels(Imaginarium.FURNITURE_BUFFER)
-          .setMinZoom(Imaginarium.NEAR_ZOOM)
-          .setAttr(Fields.CLASS, furniture.getKey())
-          .setAttr(Fields.SUBCLASS, furniture.getKey());
-        if ("tree".equals(furniture.getKey())) {
-          for (String key : Imaginarium.TREE_TAGS) {
-            point.setAttr(key, nullIfEmpty(feature.getString(key)));
-          }
-        }
-        return;
-      }
-    }
-    for (var standing : Imaginarium.STANDING) {
-      if (standing.of(feature)) {
-        var point = features.point(LAYER_NAME).setBufferPixels(Imaginarium.FURNITURE_BUFFER)
-          .setMinZoom(Imaginarium.NEAR_ZOOM)
-          .setAttr(Fields.CLASS, standing.key())
-          .setAttr(Fields.SUBCLASS, feature.getString(standing.key()));
-        for (String key : standing.tags()) {
-          point.setAttr(key, nullIfEmpty(feature.getString(key)));
-        }
-        return;
-      }
+    var standing = feature.isPoint() ? Imaginarium.standing(Imaginarium.STANDING, feature) : null;
+    if (standing != null) {
+      Imaginarium.stands(standing, feature, features.point(LAYER_NAME));
     }
   }
 
