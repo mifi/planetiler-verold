@@ -12,9 +12,13 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class HousenumberTest extends AbstractLayerTest {
 
+  /** Imaginarium: where an address is, the building layer's point while the tile is made (see Building ADDRESSED). */
+  private static final Map<String, Object> ADDRESS = Map.of("_layer", "building", "_address", true);
+
   @Test
   void testHousenumber() {
-    assertFeatures(14, List.of(Map.of(
+    // Imaginarium: the building layer's address point beside it (see BuildingTest).
+    assertFeatures(14, List.of(ADDRESS, Map.of(
       "_layer", "housenumber",
       "_type", "point",
       "_minzoom", 14,
@@ -23,7 +27,8 @@ class HousenumberTest extends AbstractLayerTest {
     )), process(pointFeature(Map.of(
       "addr:housenumber", "10"
     ))));
-    assertFeatures(14, List.of(Map.of(
+    // Imaginarium: the building layer's address point beside it (see BuildingTest).
+    assertFeatures(14, List.of(ADDRESS, Map.of(
       "_layer", "housenumber",
       "_type", "point",
       "_minzoom", 14,
@@ -51,7 +56,8 @@ class HousenumberTest extends AbstractLayerTest {
 
   @Test
   void testTempAttrs() {
-    assertFeatures(14, List.of(Map.of(
+    assertFeatures(14, List.of(ADDRESS, Map.of(
+      "_layer", "housenumber",
       "_has_name", Boolean.TRUE,
       "_partition", "streetX765/6"
     )), process(polygonFeature(Map.of(

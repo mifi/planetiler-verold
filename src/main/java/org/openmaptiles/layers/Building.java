@@ -45,12 +45,19 @@ import com.onthegomap.planetiler.ForwardingProfile;
 import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.expression.Expression;
+import com.onthegomap.planetiler.geo.GeoUtils;
 import com.onthegomap.planetiler.geo.GeometryException;
+import com.onthegomap.planetiler.geo.GeometryType;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Parse;
 import com.onthegomap.planetiler.util.Translations;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.index.strtree.STRtree;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
@@ -67,6 +74,7 @@ import org.openmaptiles.util.ImaginariumBuildings;
 public class Building implements
   OpenMapTilesSchema.Building,
   Tables.OsmBuildingPolygon.Handler,
+  Tables.OsmHousenumberPoint.Handler,
   ForwardingProfile.LayerPostProcessor,
   OpenMapTilesProfile.OsmAllProcessor {
 
@@ -149,9 +157,69 @@ public class Building implements
     }
   }
 
+  /**
+   * Imaginarium: on a building or a part, that somebody is addressed in it, all the app asks of an address: an address
+   * point (OpenMapTiles' housenumber layer's, see ADDRESS) in its outline, which a building's own address is in.
+   * Instead of the housenumber layer, which is not built.
+   */
+  public static final String ADDRESSED = "addressed";
+
+  /**
+   * Imaginarium: an address point, a point in the building layer while each tile is made, taken off as it is written
+   * (see {@link #addressed}): the housenumber layer's own, where an address (`addr:housenumber`) is, a node or in an
+   * outline (at its middle, or a point in it where it is not convex), as far past the tile's edge as that layer's.
+   */
+  private static final String ADDRESS = "_address";
+
+  @Override
+  public void process(Tables.OsmHousenumberPoint element, FeatureCollector features) {
+    features.centroidIfConvex(LAYER_NAME)
+      .setBufferPixels(OpenMapTilesSchema.Housenumber.BUFFER_SIZE)
+      .setMinZoom(Imaginarium.NEAR_ZOOM)
+      .setAttr(ADDRESS, true);
+  }
+
+  /**
+   * Imaginarium: a tile's buildings and parts, each with an address point in it (on its edge too) marked ADDRESSED, and
+   * without the address points.
+   */
+  static List<VectorTile.Feature> addressed(List<VectorTile.Feature> items) throws GeometryException {
+    STRtree addresses = new STRtree();
+    List<VectorTile.Feature> kept = new ArrayList<>(items.size());
+    for (var item : items) {
+      if (!item.tags().containsKey(ADDRESS)) {
+        kept.add(item);
+        continue;
+      }
+      for (var at : item.geometry().decode().getCoordinates()) {
+        addresses.insert(new Envelope(at), GeoUtils.point(at));
+      }
+    }
+    if (addresses.isEmpty()) {
+      return kept;
+    }
+    for (int at = 0; at < kept.size(); at++) {
+      var item = kept.get(at);
+      if (item.geometry().geomType() != GeometryType.POLYGON) {
+        continue;
+      }
+      Geometry outline = item.geometry().decode();
+      for (Object address : addresses.query(outline.getEnvelopeInternal())) {
+        if (outline.intersects((Geometry) address)) {
+          kept.set(at, item.copyWithExtraAttrs(Map.of(ADDRESSED, true)));
+          break;
+        }
+      }
+    }
+    return kept;
+  }
+
   @Override
   public List<VectorTile.Feature> postProcess(int zoom,
     List<VectorTile.Feature> items) throws GeometryException {
+    if (zoom == Imaginarium.NEAR_ZOOM) {
+      items = addressed(items);
+    }
     // Imaginarium: never merged at z14, each building its own feature with its own id; merging (which reduces the
     // size of some heavy z14 tiles with many small buildings by 60% or more) lost which building was which.
     return (mergeZ13Buildings && zoom == 13) ?

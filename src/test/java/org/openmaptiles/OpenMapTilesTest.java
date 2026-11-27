@@ -287,6 +287,8 @@ class OpenMapTilesTest {
     // comes within it of what that tile builds.
     assertNumFeatures("building", Map.of(), 14, 1325, Polygon.class);
     assertNumFeatures("building", Map.of(), 13, 0, Polygon.class);
+    // Imaginarium: those with an address point in them (the housenumber layer's), the copies elsewhere too.
+    assertNumFeatures("building", Map.of("addressed", true), 14, 178, Polygon.class);
   }
 
   @Test

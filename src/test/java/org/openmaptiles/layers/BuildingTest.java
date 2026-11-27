@@ -3,6 +3,7 @@ package org.openmaptiles.layers;
 import static com.onthegomap.planetiler.TestUtils.rectangle;
 
 import com.onthegomap.planetiler.VectorTile;
+import com.onthegomap.planetiler.geo.GeoUtils;
 import com.onthegomap.planetiler.geo.GeometryException;
 import java.util.List;
 import java.util.Map;
@@ -199,6 +200,60 @@ class BuildingTest extends AbstractLayerTest {
       List.of(),
       profile.postProcessLayerFeatures(Building.LAYER_NAME, 13, List.of(poly1, poly2))
     );
+  }
+
+  /**
+   * Imaginarium: an address, a node's or a building's own, is a point in the building layer while the tile is made, as
+   * in the housenumber layer (not built).
+   */
+  @Test
+  void testAddressPoint() {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "building",
+      "_type", "point",
+      "_address", true,
+      "_minzoom", 14,
+      "_buffer", 8d
+    ), Map.of("_layer", "housenumber")), process(pointFeature(Map.of(
+      "addr:housenumber", "7"
+    ))));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "building",
+      "_type", "polygon"
+    ), Map.of(
+      "_layer", "building",
+      "_type", "point",
+      "_address", true
+    ), Map.of("_layer", "housenumber")), process(polygonFeature(Map.of(
+      "building", "yes",
+      "addr:housenumber", "7"
+    ))));
+  }
+
+  /** Imaginarium: a building or a part with an address point in it, on its edge too, is addressed; the points go. */
+  @Test
+  void testAddressed() throws GeometryException {
+    var addressed = new VectorTile.Feature(Building.LAYER_NAME, 1, VectorTile.encodeGeometry(rectangle(10, 20)),
+      Map.of("building", "yes"), 0);
+    var edged = new VectorTile.Feature(Building.LAYER_NAME, 2, VectorTile.encodeGeometry(rectangle(30, 40)),
+      Map.of("building", "yes"), 0);
+    var none = new VectorTile.Feature(Building.LAYER_NAME, 3, VectorTile.encodeGeometry(rectangle(50, 60)),
+      Map.of("building", "yes"), 0);
+    var entrance = new VectorTile.Feature(Building.LAYER_NAME, VectorTile.NO_FEATURE_ID,
+      VectorTile.encodeGeometry(GeoUtils.point(15, 15)), Map.of("entrance", "yes"), 0);
+    List<VectorTile.Feature> items = new java.util.ArrayList<>(List.of(addressed, edged, none, entrance));
+    for (var at : List.of(GeoUtils.point(15, 15), GeoUtils.point(12, 18), GeoUtils.point(30, 35),
+      GeoUtils.point(45, 45))) {
+      items.add(new VectorTile.Feature(Building.LAYER_NAME, VectorTile.NO_FEATURE_ID, VectorTile.encodeGeometry(at),
+        Map.of("_address", true), 0));
+    }
+    Assertions.assertEquals(List.of(
+      Map.of("building", "yes", "addressed", true),
+      Map.of("building", "yes", "addressed", true),
+      Map.of("building", "yes"),
+      Map.of("entrance", "yes")
+    ), profile.postProcessLayerFeatures(Building.LAYER_NAME, 14, items).stream().map(VectorTile.Feature::tags)
+      .toList());
   }
 
   /** Imaginarium: no `colour` nor `hide_3d` (nothing reads them), the tagged `building:colour` instead. */
