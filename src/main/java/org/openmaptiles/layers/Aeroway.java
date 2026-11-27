@@ -40,10 +40,12 @@ import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.stats.Stats;
 import com.onthegomap.planetiler.util.Translations;
+import java.util.List;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
 import org.openmaptiles.util.Imaginarium;
+import org.openmaptiles.util.Utils;
 
 /**
  * Defines the logic for generating map elements in the {@code aeroway} layer from source features.
@@ -62,19 +64,40 @@ public class Aeroway implements
 
   @Override
   public void process(Tables.OsmAerowayPolygon element, FeatureCollector features) {
-    features.polygon(LAYER_NAME)
+    var feature = features.polygon(LAYER_NAME)
       .setMinZoom(10)
       .setMinPixelSize(2)
       .setAttr(Fields.CLASS, element.aeroway())
       .setAttr(Fields.REF, element.ref());
+    laid(feature, element.source());
   }
 
   @Override
   public void process(Tables.OsmAerowayLinestring element, FeatureCollector features) {
-    features.line(LAYER_NAME)
+    var feature = features.line(LAYER_NAME)
       .setMinZoom(10)
       .setAttr(Fields.CLASS, element.aeroway())
       .setAttr(Fields.REF, element.ref());
+    laid(feature, element.source());
+  }
+
+  /**
+   * Imaginarium: what a runway or a taxiway carries beside its class and ref, an area of an airfield too, at the near
+   * zoom, as the transportation layer's ways carry it: `brunnel` (a bridge or a tunnel) and `layer`, `tunnel` and its
+   * `width` as tagged (a passage through a building a `tunnel=building_passage`), and its `surface` as OpenMapTiles
+   * reduces a road's (paved or unpaved), the tagged value beside it as `surface:osm`.
+   */
+  private static void laid(FeatureCollector.Feature feature, SourceFeature source) {
+    feature
+      .setAttrWithMinzoom(Transportation.Fields.BRUNNEL,
+        Utils.brunnel(source.getBoolean("bridge"), source.getBoolean("tunnel")), Imaginarium.NEAR_ZOOM)
+      .setAttrWithMinzoom(Transportation.Fields.LAYER, Utils.nullIfLong(source.getLong("layer"), 0),
+        Imaginarium.NEAR_ZOOM)
+      .setAttrWithMinzoom(Transportation.Fields.SURFACE, Transportation.surface(source.getString("surface")),
+        Imaginarium.NEAR_ZOOM)
+      .setAttrWithMinzoom("width", Utils.nullIfEmpty(source.getString("width")), Imaginarium.NEAR_ZOOM)
+      .setAttrWithMinzoom("tunnel", Utils.nullIfEmpty(source.getString("tunnel")), Imaginarium.NEAR_ZOOM);
+    Imaginarium.taggedRenamed(feature, source, List.of("surface"));
   }
 
   @Override

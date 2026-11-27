@@ -213,7 +213,7 @@ public class Transportation implements
   }
 
   /** Returns a value for {@code surface} tag constrained to a small set of known values from raw OSM data. */
-  private static String surface(String value) {
+  static String surface(String value) {
     return value == null ? null : SURFACE_PAVED_VALUES.contains(value) ? FieldValues.SURFACE_PAVED :
       SURFACE_UNPAVED_VALUES.contains(value) ? FieldValues.SURFACE_UNPAVED : null;
   }
