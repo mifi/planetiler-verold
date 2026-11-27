@@ -260,8 +260,14 @@ public class Transportation implements
     ), null) : isBridgeOrPier(manMade) ? manMade : null;
   }
 
+  /**
+   * Imaginarium: a way's own kind, its `public_transport` or else its `highway`, wherever it says more than its class
+   * (OpenMapTiles' only of paths): which path a footway, a cycleway or steps are, and which `minor` road a residential
+   * street, a living street or an unclassified road, a link of which road it is, a busway of a bus guideway's.
+   */
   static String highwaySubclass(String highwayClass, String publicTransport, String highway) {
-    return FieldValues.CLASS_PATH.equals(highwayClass) ? coalesce(nullIfEmpty(publicTransport), highway) : null;
+    String kind = coalesce(nullIfEmpty(publicTransport), nullIfEmpty(highway));
+    return kind == null || kind.equals(highwayClass) ? null : kind;
   }
 
   /** Imaginarium: the roundabouts, which are one way, `oneway` tagged or not. */

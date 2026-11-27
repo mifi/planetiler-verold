@@ -114,7 +114,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation",
       "_type", "line",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "oneway", "<null>",
       "name", "<null>",
       "layer", "<null>",
@@ -125,7 +125,7 @@ class TransportationTest extends AbstractLayerTest {
       "_layer", "transportation_name",
       "_type", "line",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "name", "Appalachian Trail",
       "name_int", "Appalachian Trail",
       "name:latin", "Appalachian Trail",
@@ -139,7 +139,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "_layer", "transportation",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "surface", "unpaved",
       "oneway", "<null>",
       "_minzoom", 14
@@ -155,7 +155,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(14, List.of(Map.of(
       "_layer", "transportation",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "surface", "unpaved",
       "oneway", "<null>",
       "_minzoom", 14
@@ -228,7 +228,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(9, List.of(Map.of(
       "_layer", "transportation",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "official", 0
     )), process(lineFeature(Map.of(
       "highway", "path",
@@ -307,6 +307,23 @@ class TransportationTest extends AbstractLayerTest {
       "oneway", "yes",
       "indoor", "yes"
     ))));
+  }
+
+  /** Imaginarium: a way's own kind as its subclass wherever it says more than its class, a minor road's too. */
+  @Test
+  void testSubclassWhereNotClass() {
+    for (String highway : List.of("residential", "unclassified", "living_street", "road")) {
+      assertFeatures(14, List.of(Map.of("_layer", "transportation", "class", "minor", "subclass", highway)),
+        process(lineFeature(Map.of("highway", highway))));
+    }
+    assertFeatures(14, List.of(Map.of("_layer", "transportation", "class", "primary", "subclass", "primary_link")),
+      process(lineFeature(Map.of("highway", "primary_link"))));
+    assertFeatures(14, List.of(Map.of("_layer", "transportation", "class", "path", "subclass", "footway")),
+      process(lineFeature(Map.of("highway", "footway"))));
+    for (String highway : List.of("primary", "service", "track", "path")) {
+      assertFeatures(14, List.of(Map.of("_layer", "transportation", "class", highway, "subclass", "<null>")),
+        process(lineFeature(Map.of("highway", highway))));
+    }
   }
 
   /**
@@ -881,7 +898,7 @@ class TransportationTest extends AbstractLayerTest {
     assertFeatures(13, List.of(Map.of(
       "_layer", "transportation",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "mtb_scale", "4",
       "surface", "unpaved",
       "bicycle", "yes",
@@ -889,7 +906,7 @@ class TransportationTest extends AbstractLayerTest {
     ), Map.of(
       "_layer", "transportation_name",
       "class", "path",
-      "subclass", "path",
+      "subclass", "<null>",
       "name", "Path name",
       "_minzoom", 14
     )), process(lineFeature(Map.of(
