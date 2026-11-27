@@ -309,6 +309,33 @@ class TransportationTest extends AbstractLayerTest {
     ))));
   }
 
+  /**
+   * Imaginarium: a roundabout is one way, its own way round, where its `oneway` says nothing; as tagged where it does.
+   */
+  @Test
+  void testRoundaboutOneway() {
+    for (String junction : List.of("roundabout", "circular")) {
+      assertFeatures(14, List.of(Map.of("_layer", "transportation", "oneway", 1)), process(lineFeature(Map.of(
+        "highway", "residential",
+        "junction", junction
+      ))));
+    }
+    assertFeatures(14, List.of(Map.of("_layer", "transportation", "oneway", "<null>")), process(lineFeature(Map.of(
+      "highway", "residential",
+      "junction", "roundabout",
+      "oneway", "no"
+    ))));
+    assertFeatures(14, List.of(Map.of("_layer", "transportation", "oneway", -1)), process(lineFeature(Map.of(
+      "highway", "residential",
+      "junction", "roundabout",
+      "oneway", "-1"
+    ))));
+    assertFeatures(14, List.of(Map.of("_layer", "transportation", "oneway", "<null>")), process(lineFeature(Map.of(
+      "highway", "residential",
+      "junction", "spui"
+    ))));
+  }
+
   @Test
   void testInterstateMotorway() {
     var rel = new OsmElement.Relation(1);

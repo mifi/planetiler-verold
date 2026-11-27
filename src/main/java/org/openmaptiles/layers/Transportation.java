@@ -264,6 +264,18 @@ public class Transportation implements
     return FieldValues.CLASS_PATH.equals(highwayClass) ? coalesce(nullIfEmpty(publicTransport), highway) : null;
   }
 
+  /** Imaginarium: the roundabouts, which are one way, `oneway` tagged or not. */
+  private static final Set<String> ROUNDABOUTS = Set.of("roundabout", "circular");
+
+  /**
+   * Imaginarium: which way a road's traffic goes, as its `oneway` says (1, -1, or 0 both ways), and of a roundabout
+   * (`junction=roundabout` or `circular`) that says nothing, its own way round, 1: one way by the junction's tag alone.
+   */
+  static int oneway(Tables.OsmHighwayLinestring element) {
+    return element.source().hasTag("oneway") ||
+      !ROUNDABOUTS.contains(coalesce(element.source().getString("junction"), "")) ? element.isOneway() : 1;
+  }
+
   static boolean isFootwayOrSteps(String highway) {
     return "footway".equals(highway) || "steps".equals(highway);
   }
@@ -535,7 +547,7 @@ public class Transportation implements
           ((ZoomFunction<Integer>) z -> z < 9 ? null : z >= 12 ? rampAboveZ12 : rampBelowZ12))
         // z12+
         .setAttrWithMinzoom(Fields.SERVICE, service, 12)
-        .setAttrWithMinzoom(Fields.ONEWAY, nullIfInt(element.isOneway(), 0), 12)
+        .setAttrWithMinzoom(Fields.ONEWAY, nullIfInt(oneway(element), 0), 12)
         .setAttrWithMinzoom(Fields.SURFACE, surface(coalesce(element.surface(), element.tracktype())), 12)
         .setMinPixelSize(0) // merge during post-processing, then limit by size
         .setSortKey(element.zOrder())
