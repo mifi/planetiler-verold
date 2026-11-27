@@ -35,9 +35,7 @@ See https://github.com/openmaptiles/openmaptiles/blob/master/LICENSE.md for deta
 */
 package org.openmaptiles.layers;
 
-import static com.onthegomap.planetiler.util.MemoryEstimator.CLASS_HEADER_BYTES;
 import static com.onthegomap.planetiler.util.Parse.parseDoubleOrNull;
-import static java.util.Map.entry;
 import static org.openmaptiles.util.Utils.coalesce;
 import static org.openmaptiles.util.Utils.nullIfEmpty;
 
@@ -49,23 +47,10 @@ import com.onthegomap.planetiler.config.PlanetilerConfig;
 import com.onthegomap.planetiler.expression.Expression;
 import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.reader.SourceFeature;
-import com.onthegomap.planetiler.reader.osm.OsmElement;
-import com.onthegomap.planetiler.reader.osm.OsmRelationInfo;
 import com.onthegomap.planetiler.stats.Stats;
-import com.onthegomap.planetiler.util.MemoryEstimator;
 import com.onthegomap.planetiler.util.Parse;
 import com.onthegomap.planetiler.util.Translations;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFilter;
-import org.locationtech.jts.geom.Polygon;
-import org.locationtech.jts.geom.TopologyException;
-import org.locationtech.jts.index.strtree.STRtree;
-import org.locationtech.jts.operation.overlayng.OverlayNG;
-import org.locationtech.jts.operation.overlayng.OverlayNGRobust;
 import org.openmaptiles.OpenMapTilesProfile;
 import org.openmaptiles.generated.OpenMapTilesSchema;
 import org.openmaptiles.generated.Tables;
@@ -83,7 +68,6 @@ public class Building implements
   OpenMapTilesSchema.Building,
   Tables.OsmBuildingPolygon.Handler,
   ForwardingProfile.LayerPostProcessor,
-  ForwardingProfile.OsmRelationPreprocessor,
   OpenMapTilesProfile.OsmAllProcessor {
 
   /*
@@ -96,32 +80,11 @@ public class Building implements
    * THIS IS VERY EXPENSIVE! Merging buildings at z13 adds about 50% to the
    * total map generation time.  To disable it, set building_merge_z13 argument
    * to false.
+   *
+   * Imaginarium: OpenMapTiles' `colour` (of `building:colour` or its material) and `hide_3d` (of an outline drawn round
+   * its parts) are not made: nothing reads them, the app reads `building:colour` and the parts as tagged.
    */
-
-  private static final Map<String, String> MATERIAL_COLORS = Map.ofEntries(
-    entry("cement_block", "#6a7880"),
-    entry("brick", "#bd8161"),
-    entry("plaster", "#dadbdb"),
-    entry("wood", "#d48741"),
-    entry("concrete", "#d3c2b0"),
-    entry("metal", "#b7b1a6"),
-    entry("stone", "#b4a995"),
-    entry("mud", "#9d8b75"),
-    entry("steel", "#b7b1a6"), // same as metal
-    entry("glass", "#5a81a0"),
-    entry("traditional", "#bd8161"), // same as brick
-    entry("masonry", "#bd8161"), // same as brick
-    entry("Brick", "#bd8161"), // same as brick
-    entry("tin", "#b7b1a6"), // same as metal
-    entry("timber_framing", "#b3b0a9"),
-    entry("sandstone", "#b4a995"), // same as stone
-    entry("clay", "#9d8b75") // same as mud
-  );
-  private static final String TEMP_PART = "_part";
-  /** Share of a building's area that its parts have to cover before the building is hidden in 3D. */
-  private static final double MIN_PART_COVERAGE = 0.5;
   private final boolean mergeZ13Buildings;
-  private final boolean hideOutlinesWithParts;
 
   /** Imaginarium: where the buildings too big to make whole are counted (see ImaginariumBuildings#WHOLE_MOST). */
   private final Stats stats;
@@ -133,19 +96,6 @@ public class Building implements
       "building: merge nearby buildings at z13",
       false
     );
-    this.hideOutlinesWithParts = config.arguments().getBoolean(
-      "building_hide_outlines_with_parts",
-      "building: set hide_3d on buildings mostly covered by building parts",
-      false
-    );
-  }
-
-  @Override
-  public List<OsmRelationInfo> preprocessOsmRelation(OsmElement.Relation relation) {
-    if (relation.hasTag("type", "building")) {
-      return List.of(new BuildingRelationInfo(relation.id()));
-    }
-    return null;
   }
 
   /** Imaginarium: a height or a count as tagged, or none where it is below 0 or no finite number. */
@@ -155,23 +105,6 @@ public class Building implements
 
   @Override
   public void process(Tables.OsmBuildingPolygon element, FeatureCollector features) {
-    Boolean hide3d = null;
-    var relations = element.source().relationInfo(BuildingRelationInfo.class);
-    for (var relation : relations) {
-      if ("outline".equals(relation.role())) {
-        hide3d = true;
-        break;
-      }
-    }
-
-    String color = element.colour();
-    if (color == null && element.material() != null) {
-      color = MATERIAL_COLORS.get(element.material());
-    }
-    if (color != null) {
-      color = color.toLowerCase(Locale.ROOT);
-    }
-
     // Imaginarium: a height or a count of storeys below 0, or no finite number, is none: -3000000000 m or -1e9 storeys
     // made a render height and sort key of Integer.MIN_VALUE, out of the sort key's range.
     Double height = measure(Parse.meters(coalesce(
@@ -199,10 +132,8 @@ public class Building implements
         .setMinZoom(13)
         .setMinPixelSize(2)
         .setAttrWithMinzoom(Fields.RENDER_HEIGHT, renderHeight, 14)
-        .setAttrWithMinzoom(Fields.RENDER_MIN_HEIGHT, renderMinHeight, 14)
-        .setAttrWithMinzoom(Fields.COLOUR, color, 14)
-        .setAttrWithMinzoom(Fields.HIDE_3D, hide3d, 14)
-        .setAttrWithMinzoom(TEMP_PART, hideOutlinesWithParts && element.buildingpart() != null ? true : null, 14)
+        // Imaginarium: none on the ground, where a reader takes none for 0.
+        .setAttrWithMinzoom(Fields.RENDER_MIN_HEIGHT, renderMinHeight == 0 ? null : renderMinHeight, 14)
         .setSortKey(renderHeight);
       // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away), and in
       // its home tile uncut, its parts with it (see ImaginariumBuildings).
@@ -221,9 +152,6 @@ public class Building implements
   @Override
   public List<VectorTile.Feature> postProcess(int zoom,
     List<VectorTile.Feature> items) throws GeometryException {
-    if (hideOutlinesWithParts && zoom >= 14) {
-      hideOutlinesCoveredByParts(items);
-    }
     // Imaginarium: never merged at z14, each building its own feature with its own id; merging (which reduces the
     // size of some heavy z14 tiles with many small buildings by 60% or more) lost which building was which.
     return (mergeZ13Buildings && zoom == 13) ?
@@ -252,66 +180,6 @@ public class Building implements
       Imaginarium.tagged(entrance, feature, Imaginarium.ENTRANCE_TAGS);
     } else if (feature.canBePolygon() && feature.hasTag("man_made", "bridge") && BRIDGE_BUILDING.evaluate(feature)) {
       process(new Tables.OsmBuildingPolygon(feature, null), features);
-    }
-  }
-
-  /**
-   * Sets {@code hide_3d} on buildings that are mostly covered by {@code building:part}s, because
-   * <a href="https://wiki.openstreetmap.org/wiki/Simple_3D_Buildings">Simple 3D Buildings</a> does not use the outline
-   * of a building for 3D rendering when it has parts.
-   */
-  private static void hideOutlinesCoveredByParts(List<VectorTile.Feature> items) throws GeometryException {
-    List<VectorTile.Feature> outlines = new ArrayList<>();
-    STRtree parts = new STRtree();
-    for (var item : items) {
-      if (!item.tags().containsKey(TEMP_PART)) {
-        outlines.add(item);
-        continue;
-      }
-      item.tags().remove(TEMP_PART);
-      Geometry geometry = item.geometry().decode();
-      geometry.apply((GeometryFilter) (Geometry geom) -> {
-        if (geom instanceof Polygon part) {
-          parts.insert(part.getEnvelopeInternal(), part);
-        }
-      });
-    }
-    if (parts.isEmpty()) {
-      return;
-    }
-    for (var outline : outlines) {
-      if (Boolean.TRUE.equals(outline.tags().get(Fields.HIDE_3D))) {
-        continue;
-      }
-      if (partCoverage(outline.geometry().decode(), parts) > MIN_PART_COVERAGE) {
-        outline.tags().put(Fields.HIDE_3D, true);
-      }
-    }
-  }
-
-  /** Returns the share of {@code outline}'s area that is covered by {@code parts}. */
-  private static double partCoverage(Geometry outline, STRtree parts) {
-    List<Geometry> nearby = new ArrayList<>();
-    for (Object part : parts.query(outline.getEnvelopeInternal())) {
-      nearby.add((Geometry) part);
-    }
-    if (nearby.isEmpty()) {
-      return 0;
-    }
-    try {
-      // the default intersection throws a TopologyException on some real buildings that OverlayNGRobust handles
-      Geometry covered = OverlayNGRobust.overlay(outline, OverlayNGRobust.union(nearby), OverlayNG.INTERSECTION);
-      return covered.getArea() / outline.getArea();
-    } catch (TopologyException e) {
-      return 0;
-    }
-  }
-
-  private record BuildingRelationInfo(long id) implements OsmRelationInfo {
-
-    @Override
-    public long estimateMemoryUsageBytes() {
-      return CLASS_HEADER_BYTES + MemoryEstimator.estimateSizeLong(id);
     }
   }
 }
