@@ -46,6 +46,7 @@ import com.onthegomap.planetiler.FeatureMerge;
 import com.onthegomap.planetiler.ForwardingProfile;
 import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.config.PlanetilerConfig;
+import com.onthegomap.planetiler.expression.Expression;
 import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.reader.SourceFeature;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
@@ -230,12 +231,27 @@ public class Building implements
       items;
   }
 
-  /** Imaginarium: an entrance (a node tagged entrance=*), a point in the building layer with its id and tags. */
+  /**
+   * Imaginarium: a bridge mapped as a building (`man_made=bridge` with a `building` or a `building:part`), which
+   * OpenMapTiles leaves out of its buildings and the app builds as a structure: what its building table takes, but for
+   * that.
+   */
+  private static final Expression BRIDGE_BUILDING = Expression.and(Expression.matchAny("man_made", "bridge"),
+    Tables.OsmBuildingPolygon.MAPPING.replace(Expression.not(Expression.matchAny("man_made", "bridge")),
+      Expression.TRUE))
+    .simplify();
+
+  /**
+   * Imaginarium: an entrance (a node tagged entrance=*), a point in the building layer with its id and tags; and a
+   * bridge mapped as a building (see BRIDGE_BUILDING), as any building.
+   */
   @Override
   public void processAllOsm(SourceFeature feature, FeatureCollector features) {
     if (feature.isPoint() && feature.hasTag("entrance")) {
       var entrance = features.point(LAYER_NAME).setBufferPixels(BUFFER_SIZE).setMinZoom(Imaginarium.NEAR_ZOOM);
       Imaginarium.tagged(entrance, feature, Imaginarium.ENTRANCE_TAGS);
+    } else if (feature.canBePolygon() && feature.hasTag("man_made", "bridge") && BRIDGE_BUILDING.evaluate(feature)) {
+      process(new Tables.OsmBuildingPolygon(feature, null), features);
     }
   }
 

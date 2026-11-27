@@ -66,6 +66,42 @@ class BuildingTest extends AbstractLayerTest {
     ))));
   }
 
+  /**
+   * Imaginarium: a bridge mapped as a building is one, with its `man_made`, beside the bridge transportation has of it;
+   * a bridge's outline alone is none.
+   */
+  @Test
+  void testBridgeBuilding() {
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "building",
+      "_type", "polygon",
+      "building", "yes",
+      "man_made", "bridge"
+    ), Map.of("_layer", "transportation", "class", "bridge")), process(polygonFeature(Map.of(
+      "building", "yes",
+      "man_made", "bridge"
+    ))));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "building",
+      "building:part", "yes",
+      "man_made", "bridge"
+    ), Map.of("_layer", "transportation", "class", "bridge")), process(polygonFeature(Map.of(
+      "building:part", "yes",
+      "man_made", "bridge"
+    ))));
+    assertFeatures(14, List.of(Map.of("_layer", "transportation")), process(polygonFeature(Map.of(
+      "building", "no",
+      "man_made", "bridge"
+    ))));
+    assertFeatures(14, List.of(), process(pointFeature(Map.of(
+      "building", "yes",
+      "man_made", "bridge"
+    ))));
+    assertFeatures(14, List.of(Map.of("_layer", "transportation", "class", "bridge")), process(polygonFeature(Map.of(
+      "man_made", "bridge"
+    ))));
+  }
+
   @Test
   void testAirportBuildings() {
     assertFeatures(13, List.of(Map.of(
