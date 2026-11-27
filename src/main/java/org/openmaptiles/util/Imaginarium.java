@@ -87,7 +87,8 @@ public final class Imaginarium {
   public static final List<String> ROAD_TAGS = List.of(
     "lanes", "width", "sidewalk", "lit", "maxheight", "maxspeed", "turn:lanes", "tunnel", "covered", "lanes:forward",
     "lanes:backward", "cycleway", "cycleway:left", "cycleway:right", "cycleway:both", "parking:both", "parking:left",
-    "parking:right", "step_count", "handrail");
+    "parking:right", "step_count", "handrail", "footway", "crossing", "crossing:markings", "tracktype",
+    "lane_markings");
 
   /** OpenStreetMap keys whose names OpenMapTiles uses for reduced values: carried as tagged under `<key>:osm`. */
   public static final List<String> ROAD_RENAMED = List.of("surface", "service");
@@ -281,8 +282,8 @@ public final class Imaginarium {
    */
   public static final List<Standing> STANDING = List.of(
     new Standing("highway", Set.of("street_lamp", "crossing", "traffic_signals", "stop", "give_way"),
-      List.of("crossing")),
-    new Standing("amenity", Set.of("bench", "vending_machine"), List.of("vending")),
+      List.of("crossing", "crossing:markings", "crossing:island", "kerb", "tactile_paving", "direction", "lamp_mount")),
+    new Standing("amenity", Set.of("bench", "vending_machine"), List.of("vending", "backrest")),
     new Standing("leisure", Set.of("picnic_table"), List.of()),
     new Standing("natural", Set.of("tree"), List.of("leaf_type", "genus")),
     new Standing("railway", Set.of("level_crossing", "signal"), List.of()),

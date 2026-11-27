@@ -606,6 +606,18 @@ class ImaginariumTest extends AbstractLayerTest {
     assertFeatures(14, List.of(), process(pointFeature(Map.of("power", "tower"))));
     assertFeatures(14, List.of(), process(pointFeature(Map.of("power", "pole"))));
     assertFeatures(14, List.of(), process(pointFeature(Map.of("traffic_calming", "no"))));
+    // A crossing's markings, island, kerbs and paving; which way a stop sign faces; how a lamp is mounted; a bench's back.
+    var crossing = Map.<String, Object>of("highway", "crossing", "crossing:markings", "zebra", "crossing:island", "yes",
+      "kerb", "lowered", "tactile_paving", "yes");
+    assertFeatures(14,
+      List.of(with(with(with(crossing, "highway", "<null>"), "class", "highway"), "subclass", "crossing")),
+      process(pointFeature(crossing)));
+    assertFeatures(14, List.of(Map.of("subclass", "stop", "direction", "forward")),
+      process(pointFeature(Map.of("highway", "stop", "direction", "forward"))));
+    assertFeatures(14, List.of(Map.of("subclass", "street_lamp", "lamp_mount", "straight_mast")),
+      process(pointFeature(Map.of("highway", "street_lamp", "lamp_mount", "straight_mast"))));
+    assertFeatures(14, List.of(Map.of("subclass", "bench", "backrest", "no")),
+      process(pointFeature(Map.of("amenity", "bench", "backrest", "no"))));
   }
 
   @Test
@@ -712,6 +724,19 @@ class ImaginariumTest extends AbstractLayerTest {
       "class", "rail",
       "electrified", "contact_line"
     )), process(lineFeature(Map.of("railway", "rail", "electrified", "contact_line"))));
+    // A sidewalk or a crossing of a footway, and its markings; a track's grade; whether a road's lanes are marked.
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "transportation",
+      "footway", "crossing",
+      "crossing", "uncontrolled",
+      "crossing:markings", "zebra"
+    )), process(lineFeature(Map.of("highway", "footway", "footway", "crossing", "crossing", "uncontrolled",
+      "crossing:markings", "zebra"))));
+    assertFeatures(14, List.of(Map.of(
+      "_layer", "transportation",
+      "tracktype", "grade2",
+      "lane_markings", "no"
+    )), process(lineFeature(Map.of("highway", "track", "tracktype", "grade2", "lane_markings", "no"))));
   }
 
   @Test
