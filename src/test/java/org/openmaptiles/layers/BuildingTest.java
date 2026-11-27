@@ -102,32 +102,30 @@ class BuildingTest extends AbstractLayerTest {
     ))));
   }
 
+  /**
+   * Imaginarium: no `render_height` nor `render_min_height` (the app makes them of the tags carried), but OpenMapTiles'
+   * height still the sort key, and a building or its base 3660 m up or more still none.
+   */
   @Test
   void testRenderHeights() {
-    assertFeatures(13, List.of(Map.of(
+    assertFeatures(14, List.of(Map.of(
       "render_height", "<null>",
-      "render_min_height", "<null>"
+      "render_min_height", "<null>",
+      "_sortkey", 5
     )), process(polygonFeature(Map.of(
       "building", "yes"
     ))));
     assertFeatures(14, List.of(Map.of(
-      "render_height", 5,
-      // Imaginarium: none on the ground.
-      "render_min_height", "<null>"
-    )), process(polygonFeature(Map.of(
-      "building", "yes"
-    ))));
-    assertFeatures(14, List.of(Map.of(
-      "render_height", 12,
-      "render_min_height", 3
+      "render_height", "<null>",
+      "render_min_height", "<null>",
+      "_sortkey", 12
     )), process(polygonFeature(Map.of(
       "building", "yes",
       "building:min_height", "3",
       "building:height", "12"
     ))));
     assertFeatures(14, List.of(Map.of(
-      "render_height", 44,
-      "render_min_height", 10
+      "_sortkey", 44
     )), process(polygonFeature(Map.of(
       "building", "yes",
       "building:min_level", "3",
@@ -151,7 +149,6 @@ class BuildingTest extends AbstractLayerTest {
   void testHeightBelowZeroOrNoNumberIsNone(String key, String value) {
     // Imaginarium: as untagged, its sort key in range, where -3000000000 m or -1e9 storeys made it Integer.MIN_VALUE.
     var features = process(polygonFeature(Map.of("building", "yes", key, value)));
-    assertFeatures(14, List.of(Map.of("render_height", 5)), features);
     Assertions.assertEquals(5, features.iterator().next().getSortKey());
   }
 
@@ -166,7 +163,7 @@ class BuildingTest extends AbstractLayerTest {
   })
   void testRenderHeightUnits(String input, int expected) {
     assertFeatures(14, List.of(Map.of(
-      "render_height", expected
+      "_sortkey", expected
     )), process(polygonFeature(Map.of(
       "building", "yes",
       "building:height", input

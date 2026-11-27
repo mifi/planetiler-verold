@@ -90,7 +90,9 @@ public class Building implements
    * to false.
    *
    * Imaginarium: OpenMapTiles' `colour` (of `building:colour` or its material) and `hide_3d` (of an outline drawn round
-   * its parts) are not made: nothing reads them, the app reads `building:colour` and the parts as tagged.
+   * its parts) are not made: nothing reads them, the app reads `building:colour` and the parts as tagged. Nor its
+   * `render_height` and `render_min_height`: the app makes them of the `height`, `min_height`, `building:levels` and
+   * `building:min_level` carried (see Imaginarium#building); they are still the sort key and the bounds of what is made.
    */
   private final boolean mergeZ13Buildings;
 
@@ -139,9 +141,6 @@ public class Building implements
       var feature = features.polygon(LAYER_NAME).setBufferPixels(BUFFER_SIZE)
         .setMinZoom(13)
         .setMinPixelSize(2)
-        .setAttrWithMinzoom(Fields.RENDER_HEIGHT, renderHeight, 14)
-        // Imaginarium: none on the ground, where a reader takes none for 0.
-        .setAttrWithMinzoom(Fields.RENDER_MIN_HEIGHT, renderMinHeight == 0 ? null : renderMinHeight, 14)
         .setSortKey(renderHeight);
       // Imaginarium: each building whole, by its id and as tagged (its courtyards kept: nothing merges it away), and in
       // its home tile uncut, its parts with it (see ImaginariumBuildings).

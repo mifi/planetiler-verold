@@ -57,10 +57,17 @@ public final class Imaginarium {
    */
   public static final List<String> BUILDING_TAGS = List.of(
     "building", "building:part", "height", "min_height", "roof:shape", "roof:height", "roof:material",
-    "building:material", "bridge:support", "man_made", "shop", "office", "amenity", "religion");
+    "building:material", "bridge:support", "man_made", "shop", "office", "amenity", "religion", "building:height",
+    "building:min_height");
 
-  /** The counts of storeys a building and a part carry, as numbers (see {@link #numberOf}). */
-  public static final List<String> BUILDING_COUNTS = List.of("building:levels", "building:min_level", "roof:levels");
+  /**
+   * The counts of storeys a building and a part carry, as numbers (see {@link #numberOf}). `levels` and `min_level`,
+   * and of the lengths `building:height` and `building:min_height`, are the keys OpenMapTiles reads a building's height
+   * and base of beside `height`, `min_height`, `building:levels` and `building:min_level`, which the app makes them of
+   * as it did (its `render_height` and `render_min_height`, no longer carried).
+   */
+  public static final List<String> BUILDING_COUNTS = List.of("building:levels", "building:min_level", "roof:levels",
+    "levels", "min_level");
 
   /** Which way a roof faces down its slope, as degrees clockwise from north (see {@link #degreesOf}). */
   public static final String ROOF_DIRECTION = "roof:direction";

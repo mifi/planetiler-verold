@@ -76,6 +76,15 @@ class ImaginariumTest extends AbstractLayerTest {
       process(polygonFeature(with(TAGGED, "building", "church"))));
   }
 
+  /** The keys OpenMapTiles also reads a height and a base of, as tagged and as numbers: what the app makes them of. */
+  @Test
+  void testBuildingHeightKeys() {
+    assertFeatures(14, List.of(Map.of("_layer", "building", "building:height", "20 m", "building:min_height", "3",
+      "levels", 4L, "min_level", 1L)), process(
+        polygonFeature(Map.of("building", "yes", "building:height", "20 m",
+          "building:min_height", "3", "levels", "4", "min_level", "1"))));
+  }
+
   @Test
   void testBuildingPartFields() {
     assertFeatures(14, List.of(with(with(EXPECTED, "building:part", "tower"), "building", "<null>")),
@@ -232,7 +241,7 @@ class ImaginariumTest extends AbstractLayerTest {
   private static VectorTile.Feature building(long id, double x0, double y0, double x1, double y1, double homeX,
     double homeY, boolean part) {
     var tags = new HashMap<String, Object>(Map.of("_home_x", homeX, "_home_y", homeY, "_size",
-      Math.max(x1 - x0, y1 - y0), "render_height", 5));
+      Math.max(x1 - x0, y1 - y0), "height", "5"));
     if (part) {
       tags.put("building:part", "yes");
     } else {
@@ -262,12 +271,12 @@ class ImaginariumTest extends AbstractLayerTest {
     var across = building(12, 200, 10, 300, 60, 220, 30, false);
     var inside = building(22, 10, 10, 60, 60, 30, 30, false);
     var here = byId(homed(0, 0, across, inside));
-    assertEquals(Map.of("building", "yes", "render_height", 5), here.get(12L));
-    assertEquals(Map.of("building", "yes", "render_height", 5), here.get(22L));
+    assertEquals(Map.of("building", "yes", "height", "5"), here.get(12L));
+    assertEquals(Map.of("building", "yes", "height", "5"), here.get(22L));
     // In tile 1/0 the same building is 256 further west.
     var next = byId(homed(1, 0, building(12, -56, 10, 44, 60, 220, 30, false), building(22, -246, 10, -196, 60, 30, 30,
       false)));
-    assertEquals(Map.of("building", "yes", "render_height", 5, "elsewhere", true), next.get(12L));
+    assertEquals(Map.of("building", "yes", "height", "5", "elsewhere", true), next.get(12L));
     assertNull(next.get(22L));
   }
 
@@ -390,8 +399,8 @@ class ImaginariumTest extends AbstractLayerTest {
     // parent: elsewhere, as a building is. A building it only touches is not its.
     var part = building(32, 200, 20, 300, 50, 250, 35, true);
     var touching = building(12, 150, 20, 200.05, 50, 175, 35, false);
-    assertEquals(Map.of("building:part", "yes", "render_height", 5), byId(homed(0, 0, part, touching)).get(32L));
-    assertEquals(Map.of("building:part", "yes", "render_height", 5, "elsewhere", true),
+    assertEquals(Map.of("building:part", "yes", "height", "5"), byId(homed(0, 0, part, touching)).get(32L));
+    assertEquals(Map.of("building:part", "yes", "height", "5", "elsewhere", true),
       byId(homed(1, 0, building(32, -56, 20, 44, 50, 250, 35, true))).get(32L));
   }
 
