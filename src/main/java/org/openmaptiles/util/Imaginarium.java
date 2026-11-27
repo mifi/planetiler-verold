@@ -53,12 +53,15 @@ public final class Imaginarium {
   /**
    * The tags a building and a building part carry as tagged. Lengths (`height`, `min_height`, `roof:height`) stay as
    * tagged, in whatever unit the mapper wrote: the reader parses them. Counts, the roof's direction and the colours are
-   * normalised instead (see BUILDING_COUNTS, ROOF_DIRECTION, BUILDING_COLOURS).
+   * normalised instead (see BUILDING_COUNTS, ROOF_DIRECTION, BUILDING_COLOURS). What it is used for, as its own keys
+   * say beside `building`: `shop`, `office`, `amenity` (and whose, `religion`), an airport's terminal or hangar
+   * (`aeroway`), a hotel or a museum (`tourism`), a sports hall (`leisure`), a clinic (`healthcare`), a workshop
+   * (`craft`), a castle (`historic`), barracks (`military`).
    */
   public static final List<String> BUILDING_TAGS = List.of(
     "building", "building:part", "height", "min_height", "roof:shape", "roof:height", "roof:material",
-    "building:material", "bridge:support", "man_made", "shop", "office", "amenity", "religion", "building:height",
-    "building:min_height");
+    "building:material", "bridge:support", "man_made", "shop", "office", "amenity", "religion", "aeroway", "tourism",
+    "leisure", "healthcare", "craft", "historic", "military", "building:height", "building:min_height");
 
   /**
    * The counts of storeys a building and a part carry, as numbers (see {@link #numberOf}). `levels` and `min_level`,

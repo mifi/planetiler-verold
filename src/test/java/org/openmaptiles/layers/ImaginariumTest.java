@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.onthegomap.planetiler.FeatureCollector;
 import com.onthegomap.planetiler.VectorTile;
 import com.onthegomap.planetiler.geo.GeometryException;
 import com.onthegomap.planetiler.geo.TileCoord;
 import com.onthegomap.planetiler.reader.osm.OsmElement;
 import com.onthegomap.planetiler.stats.Stats;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +85,30 @@ class ImaginariumTest extends AbstractLayerTest {
       "levels", 4L, "min_level", 1L)), process(
         polygonFeature(Map.of("building", "yes", "building:height", "20 m",
           "building:min_height", "3", "levels", "4", "min_level", "1"))));
+  }
+
+  /**
+   * What a building is used for, as its own keys say: an airport's terminal, a hotel, a workshop (beside what the other
+   * layers make of the same keys).
+   */
+  @Test
+  void testBuildingUses() {
+    assertFeatures(14, List.of(Map.of("_layer", "building", "aeroway", "terminal", "building", "<null>")),
+      buildingsOf(process(polygonFeature(Map.of("aeroway", "terminal")))));
+    var uses = Map.<String, Object>of("tourism", "hotel", "leisure", "sports_hall", "healthcare", "clinic", "craft",
+      "carpenter", "historic", "castle", "military", "barracks");
+    assertFeatures(14, List.of(with(uses, "building", "yes")),
+      buildingsOf(process(polygonFeature(with(uses, "building", "yes")))));
+  }
+
+  private static List<FeatureCollector.Feature> buildingsOf(Iterable<FeatureCollector.Feature> features) {
+    List<FeatureCollector.Feature> buildings = new ArrayList<>();
+    features.forEach(feature -> {
+      if ("building".equals(feature.getLayer())) {
+        buildings.add(feature);
+      }
+    });
+    return buildings;
   }
 
   @Test
