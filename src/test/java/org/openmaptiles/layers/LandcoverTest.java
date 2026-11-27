@@ -131,7 +131,7 @@ class LandcoverTest extends AbstractLayerTest {
     ))));
     for (Map<String, Object> unread : List.<Map<String, Object>>of(Map.of("natural", "wood"),
       Map.of("landuse", "forest"), Map.of("natural", "dune"),
-      Map.of("landuse", "grass"), Map.of("landuse", "meadow"), Map.of("natural", "glacier"))) {
+      Map.of("landuse", "meadow"), Map.of("natural", "glacier"))) {
       assertFeatures(14, List.of(), process(polygonFeature(unread)));
     }
     assertFeatures(10, List.of(), process(polygonFeature(Map.of(

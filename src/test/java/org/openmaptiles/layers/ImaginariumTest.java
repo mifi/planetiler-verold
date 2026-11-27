@@ -697,10 +697,17 @@ class ImaginariumTest extends AbstractLayerTest {
     "allotments, landuse",
     "beach, natural",
     "sand, natural",
+    "grass, landuse",
+    "garden, leisure",
   })
   void testLandcoverKept(String subclass, String key) {
-    assertFeatures(14, List.of(Map.of("_layer", "landcover", "subclass", subclass)),
-      process(polygonFeature(Map.of(key, subclass))));
+    List<FeatureCollector.Feature> landcover = new ArrayList<>();
+    process(polygonFeature(Map.of(key, subclass))).forEach(feature -> {
+      if ("landcover".equals(feature.getLayer())) {
+        landcover.add(feature);
+      }
+    });
+    assertFeatures(14, List.of(Map.of("_layer", "landcover", "subclass", subclass)), landcover);
   }
 
   @Test

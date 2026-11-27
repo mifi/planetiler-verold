@@ -323,11 +323,11 @@ class OpenMapTilesTest {
       "class", "grass",
       "subclass", "park"
     ), 14, 20, Polygon.class);
-    // Imaginarium: only the parks.
+    // Imaginarium: and the gardens (see Imaginarium.LANDCOVER_KEPT).
     assertNumFeatures("landcover", Map.of(
       "class", "grass",
       "subclass", "garden"
-    ), 14, 0, Polygon.class);
+    ), 14, 33, Polygon.class);
   }
 
   @Test

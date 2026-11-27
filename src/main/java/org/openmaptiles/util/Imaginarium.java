@@ -242,11 +242,12 @@ public final class Imaginarium {
 
   /**
    * The subclasses of landcover kept: the parks the app reads (its vector/leisure.ts PARKS), and, carried for later,
-   * orchards, vineyards, allotments, beaches and sand, which ESA WorldCover does not tell from the land about them; the
-   * rest, the woods, grass, farmland, rock and ice, it has from WorldCover, not the tiles.
+   * orchards, vineyards, allotments, beaches and sand, which ESA WorldCover does not tell from the land about them, and
+   * a town's lawns and gardens (`landuse=grass`, `leisure=garden`), too small for it; the rest, the woods, the meadows,
+   * farmland, rock and ice, it has from WorldCover, not the tiles.
    */
   public static final Set<String> LANDCOVER_KEPT = Set.of("park", "village_green", "recreation_ground", "orchard",
-    "vineyard", "allotments", "beach", "sand");
+    "vineyard", "allotments", "beach", "sand", "grass", "garden");
 
   /**
    * A kind of thing mapped as a point or a line that the world can stand up: what carries `key` with one of `values`
